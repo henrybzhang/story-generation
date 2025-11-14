@@ -1,0 +1,10 @@
+{
+  "name": "@story-generation/types",
+  "version": "1.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {},
+  "devDependencies": {},
+  "dependencies": {},
+  "type": "module"
+}

@@ -1,4 +1,3 @@
-import z from "zod";
 import type { ChapterOutline } from "./analysisSchema.js";
 import { kinkLexicon, type MasterStoryDocument } from "./analysisSchema.js";
 
@@ -112,10 +111,3 @@ ${sourceChapterText}
 ${JSON.stringify(generatedOutline, null, 2)}
 </GENERATED_OUTLINE>`;
 };
-
-export const scoreSchema = z.object({
-  score: z.number(),
-  rationale: z.string(),
-});
-
-export type Score = z.infer<typeof scoreSchema>;

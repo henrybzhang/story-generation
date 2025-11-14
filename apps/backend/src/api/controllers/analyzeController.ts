@@ -1,30 +1,30 @@
-import type { Request, Response } from "express";
 import {
-  scorePrompt,
-  scorePromptWithMasterStoryDocument,
-  scoreSchema,
-} from "@/src/lib/scoreSchema.js";
-import {
+  type AnalysisMethod,
+  type AnalysisRequest,
+  type AnalysisResult,
+  type ChapterData,
   type ChapterOutline,
+  type CompleteContextualChapterAnalysis,
+  type CompleteSequentialChapterAnalysis,
   type ContextualStoryAnalysis,
   contextualAnalysisSchema,
+  type MasterStoryDocument,
+  MasterStoryDocumentSchema,
+  type SequentialChapterAnalysis,
+  scoreSchema,
+  sequentialAnalysisSchema,
+} from "@story-generation/types";
+import type { Request, Response } from "express";
+import {
   createContextualAnalysisPrompt,
   createNextMasterDocFromOutlinePrompt,
   createSequentialAnalysisPrompt,
-  type MasterStoryDocument,
-  MasterStoryDocumentSchema,
-  type SequentialStoryAnalysis,
-  sequentialAnalysisSchema,
-} from "../../lib/analysisSchema.js";
-import type {
-  AnalysisMethod,
-  AnalysisRequest,
-  AnalysisResult,
-  ChapterData,
-  ContextualStoryAnalysisWithScore,
-  SequentialStoryAnalysisWithScore,
-} from "../../types/storyAnalysis.js";
-import { createLangChainClient } from "../../utils/langchain.js";
+} from "@/lib/analysisSchema.js";
+import {
+  scorePrompt,
+  scorePromptWithMasterStoryDocument,
+} from "@/lib/scoreSchema.js";
+import { createLangChainClient } from "@/utils/langchain.js";
 
 // Initialize LangChain client
 const langChainClient = createLangChainClient();
@@ -137,7 +137,7 @@ const analyzeStory = async (
   method: AnalysisMethod = "contextual",
 ): Promise<
   AnalysisResult<
-    SequentialStoryAnalysisWithScore | ContextualStoryAnalysisWithScore
+    CompleteSequentialChapterAnalysis | CompleteContextualChapterAnalysis
   >
 > => {
   switch (method) {
@@ -156,16 +156,16 @@ const analyzeStory = async (
 const analyzeSequentially = async (
   storyData: Map<string, ChapterData>,
 ): Promise<
-  AnalysisResult<Record<string, SequentialStoryAnalysisWithScore>>
+  AnalysisResult<Record<string, CompleteSequentialChapterAnalysis>>
 > => {
-  const results: Record<string, SequentialStoryAnalysis> = {};
+  const results: Record<string, CompleteSequentialChapterAnalysis> = {};
 
   const analysisPromises = Array.from(storyData.entries()).map(
     async ([chapterNum, content]) => {
       try {
         const prompt = createSequentialAnalysisPrompt(content);
 
-        const response: SequentialStoryAnalysis = await langChainClient
+        const response: SequentialChapterAnalysis = await langChainClient
           .withStructuredOutput(sequentialAnalysisSchema)
           .invoke(prompt);
 
@@ -176,7 +176,7 @@ const analyzeSequentially = async (
           chapterKey: `chapter_${chapterNum}`,
           data: {
             ...response,
-            ...score,
+            score,
           },
         };
       } catch (error) {
@@ -219,10 +219,10 @@ const analyzeSequentially = async (
 const analyzeWithContext = async (
   storyData: Map<string, ChapterData>,
 ): Promise<
-  AnalysisResult<Record<string, ContextualStoryAnalysisWithScore>>
+  AnalysisResult<Record<string, CompleteContextualChapterAnalysis>>
 > => {
   try {
-    const results: Record<string, ContextualStoryAnalysisWithScore> = {};
+    const results: Record<string, CompleteContextualChapterAnalysis> = {};
     let currentMasterDocument: MasterStoryDocument | undefined;
 
     for (const [chapterNum, content] of storyData.entries()) {
@@ -237,11 +237,6 @@ const analyzeWithContext = async (
 
       const score = await calculateScore(content, response.chapterOutline);
 
-      results[`chapter_${chapterNum}`] = {
-        ...response,
-        ...score,
-      };
-
       const masterDocPrompt = await createNextMasterDocFromOutlinePrompt(
         response.chapterOutline,
         currentMasterDocument,
@@ -250,6 +245,11 @@ const analyzeWithContext = async (
       currentMasterDocument = await langChainClient
         .withStructuredOutput(MasterStoryDocumentSchema)
         .invoke(masterDocPrompt);
+
+      results[`chapter_${chapterNum}`] = {
+        score,
+        masterStoryDocument: currentMasterDocument,
+      };
     }
 
     return {

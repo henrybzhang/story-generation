@@ -1,162 +1,425 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, ReactNode } from 'react';
-import { useRouter } from 'next/router';
-import { AccordionItem } from '../../components/AccordionItem';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { FaArrowLeft } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { FaChevronDown, FaChevronRight, FaCopy, FaCheck } from 'react-icons/fa';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { CompleteSequentialChapterAnalysis, CompleteContextualChapterAnalysis } from '@story-generation/types';
 
-interface Character {
-  name: string;
-  description: string;
-}
+type SequentialStoryAnalysis = Record<string, CompleteSequentialChapterAnalysis>;
+type ContextualStoryAnalysis = Record<string, CompleteContextualChapterAnalysis>;
 
-interface ChapterAnalysis {
-  title: string;
-  summary: string;
-  characters: Character[];
-  branching_points: string[]
-}
+type FullAnalysisResultData = {
+  /**
+   * Contains chapter-by-chapter analysis, where each key
+   * is a chapter identifier (e.g., "chapter_1").
+   */
+  sequential: SequentialStoryAnalysis;
+  /**
+   * Contains chapter-by-chapter analysis with a running
+   * 'masterStoryDocument', where each key is a chapter identifier.
+   */
+  contextual: ContextualStoryAnalysis;
+};
 
-interface AnalysisResult {
-  chapters: ChapterAnalysis[];
-  master_prompt: string;
-}
 
+// --- Main Page Component ---
 export default function AnalysisPage() {
-  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  // --- STATE ---
+  // State for the *full* data object from session storage
+  const [fullData, setFullData] = useState<FullAnalysisResultData | null>(null);
+
+  // State for the *currently displayed* data (either sequential or contextual)
+  const [analysisData, setAnalysisData] = useState<
+    SequentialStoryAnalysis | ContextualStoryAnalysis | null
+  >(null);
+  
+  // State to track the active analysis method
+  const [activeMethod, setActiveMethod] = useState<'sequential' | 'contextual'>(
+    'sequential'
+  );
+  
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // On page load, try to get the results from session storage
+  // State for the master prompt (now dynamically built)
+  const [masterPrompt, setMasterPrompt] = useState(
+    'Loading story context...'
+  );
+  // State for the user's specific direction
+  const [userDirection, setUserDirection] = useState('');
+  
+  const [isCopied, setIsCopied] = useState(false);
+  const [openChapters, setOpenChapters] = useState<Record<string, boolean>>({});
+
+  // --- EFFECTS ---
+
+  // 1. On Mount: Load and parse data from session storage
   useEffect(() => {
     try {
-      const resultString = sessionStorage.getItem('analysisResult');
-      if (resultString) {
-        setAnalysisResult(JSON.parse(resultString));
-      } else {
-        setError('No analysis data found. Redirecting to home page.');
-        setTimeout(() => {
-          router.push('/');
-        }, 3000);
+      const storedData = sessionStorage.getItem('analysisResult');
+      if (!storedData) {
+        setError('No analysis data found. Please analyze a story first.');
+        setIsLoading(false);
+        return;
       }
-    } catch (e) {
-      setError('Failed to parse analysis data.');
-      setTimeout(() => {
-        router.push('/');
-      }, 3000);
+      
+      const parsedData = JSON.parse(storedData);
+      if (
+        !parsedData.success ||
+        !parsedData.data ||
+        !parsedData.data.sequential ||
+        !parsedData.data.contextual
+      ) {
+        setError('Analysis data is missing or in an invalid format.');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Store the *entire* data object
+      setFullData(parsedData.data);
+      
+    } catch (err) {
+      setError('Failed to load analysis data. It might be corrupted.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
-  }, [router]);
+  }, []);
 
-  // Handle "Go Back" button click
-  const handleGoBack = () => {
-    // Clear the session storage so we don't see old results
-    sessionStorage.removeItem('analysisResult');
-    router.push('/');
+  // 2. On Data/Method Change: Update analysisData, masterPrompt, and accordions
+  useEffect(() => {
+    if (!fullData) return;
+
+    const currentData =
+      activeMethod === 'sequential'
+        ? fullData.sequential
+        : fullData.contextual;
+        
+    setAnalysisData(currentData);
+    
+    // Build the master prompt based on the active method
+    const newMasterPrompt = buildMasterPrompt(currentData, activeMethod);
+    setMasterPrompt(newMasterPrompt);
+
+    // Initialize/reset the open/closed state for all chapters
+    const initialOpenState = Object.keys(currentData).reduce((acc, key) => {
+      acc[key] = false;
+      return acc;
+    }, {} as Record<string, boolean>);
+    setOpenChapters(initialOpenState);
+    
+  }, [fullData, activeMethod]); // Re-run when fullData loads or method changes
+
+  // --- HANDLERS ---
+  
+  const handleToggleChapter = (chapterKey: string) => {
+    setOpenChapters((prev) => ({
+      ...prev,
+      [chapterKey]: !prev[chapterKey],
+    }));
   };
 
-  // --- Render States ---
+  const handleCopyPrompt = () => {
+    // Combine the context and the user's direction for copying
+    const fullPrompt = `${masterPrompt}\n\n[USER'S DIRECTION]\n${userDirection}`;
+    
+    navigator.clipboard
+      .writeText(fullPrompt)
+      .then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error('Failed to copy text: ', err);
+      });
+  };
 
-  // 1. Render Error State (replaces alert)
-  if (error) {
+  // --- RENDER CONDITIONS ---
+  if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto my-12 p-6 bg-red-900/50 border border-red-700 rounded-lg text-center shadow-xl">
-        <h2 className="text-2xl font-bold text-red-300 mb-4">Error</h2>
-        <p className="text-red-300 mb-6">{error}</p>
-        <button
-          onClick={handleGoBack}
-          className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105"
-        >
-          Go Back
-        </button>
+      <div className="min-h-screen bg-stone-100 text-gray-900 flex flex-col items-center justify-center">
+        <LoadingSpinner className="h-10 w-10" />
+        <span className="ml-3 text-xl mt-4">Loading Analysis...</span>
       </div>
     );
   }
 
-  // 2. Render Loading State
-  if (!analysisResult) {
-    return <LoadingSpinner />;
+  if (error) {
+    return (
+      <div className="min-h-screen bg-stone-100 text-gray-900 flex items-center justify-center p-6">
+        <div className="bg-red-100 border border-red-300 rounded-lg p-8 text-red-800 text-center shadow-lg">
+          <h2 className="text-2xl font-bold mb-4">Error</h2>
+          <p>{error}</p>
+          <button
+            onClick={() => router.push('/')}
+            className="mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-colors"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  // 3. Render Success State
-  // Once loaded, extract data
-  const { chapters: chapterAnalysis = [], master_prompt = '' } = analysisResult || {};
+  if (!analysisData) {
+    return (
+      <div className="min-h-screen bg-stone-100 text-gray-900 flex items-center justify-center">
+        <p>No data to display.</p>
+      </div>
+    );
+  }
 
-  // Aggregate all branching points into one list for its own section
-  const allBranchingPoints = chapterAnalysis.reduce<Array<{point: string; chapterTitle: string}>>((acc, chapter) => {
-    if (chapter.branching_points && Array.isArray(chapter.branching_points)) {
-      return acc.concat(chapter.branching_points.map(point => ({
-        point: point,
-        chapterTitle: chapter.title || 'Unnamed Chapter'
-      })));
+  // --- MAIN PAGE RENDER ---
+  return (
+    <div className="min-h-screen bg-stone-100 text-gray-900 p-6 md:p-10">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8 text-center text-gray-900">
+          Story Analysis Results
+        </h1>
+
+        {/* --- NEW: Method Switcher --- */}
+        <MethodSwitcher
+          activeMethod={activeMethod}
+          onMethodChange={setActiveMethod}
+        />
+
+        {/* --- Chapter Details Section (Now Conditional) --- */}
+        <div className="space-y-4 mb-12">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+            Chapter Details
+          </h2>
+          
+          {activeMethod === 'sequential' && (
+            <SequentialAnalysisView
+              data={analysisData}
+              openChapters={openChapters}
+              onToggle={handleToggleChapter}
+            />
+          )}
+          
+          {activeMethod === 'contextual' && (
+            <ContextualAnalysisView
+              data={analysisData}
+              openChapters={openChapters}
+              onToggle={handleToggleChapter}
+            />
+          )}
+        </div>
+
+        {/* --- Master Prompt Section (Updated) --- */}
+        <div className="sticky bottom-6 z-10">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+            Master Prompt
+          </h2>
+          <div className="bg-white/90 backdrop-blur-lg rounded-xl border border-gray-300 shadow-2xl p-6 space-y-4">
+            
+            {/* 1. The Generated Context */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Generated Story Context (Read-only)
+              </label>
+              <div className="relative">
+                <button
+                  onClick={handleCopyPrompt}
+                  className={`absolute top-2 right-2 text-white p-2 rounded-lg shadow-lg transition-all transform hover:scale-110 ${
+                    isCopied ? 'bg-green-600' : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                  aria-label="Copy Full Prompt (Context + Direction)"
+                >
+                  {isCopied ? <FaCheck size={14} /> : <FaCopy size={14} />}
+                </button>
+                <textarea
+                  readOnly
+                  value={masterPrompt}
+                  className="w-full h-48 bg-gray-50 p-4 rounded-lg text-gray-800 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y shadow-inner"
+                />
+              </div>
+            </div>
+
+            {/* 2. The User's Direction */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Your Direction
+              </label>
+              <textarea
+                value={userDirection}
+                onChange={(e) => setUserDirection(e.target.value)}
+                className="w-full h-24 bg-white p-4 rounded-lg text-gray-800 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-y shadow-inner"
+                placeholder="e.g., Have Matt confront Lauren about the text. Introduce a new character..."
+              />
+            </div>
+            
+            {isCopied && (
+              <p className="text-green-600 text-sm text-center">
+                Full prompt copied to clipboard!
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- HELPER FUNCTIONS & COMPONENTS ---
+
+/**
+ * Builds the master prompt string based on the active method.
+ */
+function buildMasterPrompt(
+  data: SequentialStoryAnalysis | ContextualStoryAnalysis,
+  method: 'sequential' | 'contextual'
+): string {
+  if (!data) return "Error building prompt.";
+
+  let context = `[SYSTEM]\nYou are a creative story writer. Below is the full context for a story-in-progress. Your task is to continue the story based on the user's direction.\n\n`;
+
+  if (method === 'sequential') {
+    context += `[STORY CONTEXT SO FAR (Sequential)]\n---\n`;
+    for (const [key, chapter] of Object.entries(data)) {
+      context += `[${key.toUpperCase()}]\n`;
+      context += `OUTLINE:\n${JSON.stringify(chapter.chapterOutline, null, 2)}\n\n`;
+      context += `CHARACTERS:\n${JSON.stringify(chapter.characters, null, 2)}\n\n`;
+      context += `---\n`;
     }
-    return acc;
-  }, []);
+  } else {
+    // For contextual, the *last* chapter's master doc has all info
+    const allKeys = Object.keys(data);
+    const lastKey = allKeys[allKeys.length - 1];
+    const lastChapter = data[lastKey];
+
+    if (!lastChapter || !lastChapter.masterStoryDocument) {
+      return "Error: Could not find masterStoryDocument in the latest chapter.";
+    }
+    
+    context += `[MASTER STORY DOCUMENT]\n`;
+    context += JSON.stringify(lastChapter.masterStoryDocument, null, 2);
+  }
+
+  return context;
+}
+
+/**
+ * UI Component for switching analysis methods
+ */
+function MethodSwitcher({ activeMethod, onMethodChange }: {
+  activeMethod: 'sequential' | 'contextual';
+  onMethodChange: (method: 'sequential' | 'contextual') => void;
+}) {
+  const baseStyle = "w-1/2 py-2 px-4 text-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2";
+  const activeStyle = "bg-blue-600 text-white shadow";
+  const inactiveStyle = "bg-white text-gray-700 hover:bg-gray-100";
 
   return (
-    <div className="max-w-5xl mx-auto my-12">
+    <div className="w-full max-w-md mx-auto p-1 bg-gray-200 rounded-lg flex space-x-1 mb-8">
       <button
-        onClick={handleGoBack}
-        className="flex items-center bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg mb-8 shadow-lg transition-transform transform hover:scale-105"
+        onClick={() => onMethodChange('sequential')}
+        className={`${baseStyle} ${activeMethod === 'sequential' ? activeStyle : inactiveStyle}`}
       >
-        <FaArrowLeft className="mr-2" />
-        Analyze Another Story
+        Sequential
       </button>
+      <button
+        onClick={() => onMethodChange('contextual')}
+        className={`${baseStyle} ${activeMethod === 'contextual' ? activeStyle : inactiveStyle}`}
+      >
+        Master Document
+      </button>
+    </div>
+  );
+}
 
-      <h1 className="text-4xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-        Story Analysis Results
-      </h1>
-
-      {/* --- Section 1: Summaries --- */}
-      <h2 className="text-3xl font-bold mb-4 text-white border-b-2 border-gray-700 pb-2">Chapter Summaries</h2>
-      {chapterAnalysis.map((chapter, index) => (
-        <AccordionItem key={index} title={chapter.title || `Chapter ${index + 1}`}>
-          <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">{chapter.summary}</p>
-        </AccordionItem>
-      ))}
-
-      {/* --- Section 2: Characters --- */}
-      <h2 className="text-3xl font-bold mt-12 mb-4 text-white border-b-2 border-gray-700 pb-2">Character Appearances</h2>
-      {chapterAnalysis.map((chapter, index) => (
-        <AccordionItem key={index} title={chapter.title || `Chapter ${index + 1}`}>
-          {chapter.characters && chapter.characters.length > 0 ? (
-            <ul className="list-disc list-inside space-y-3">
-              {chapter.characters?.map((char: Character, charIndex: number) => (
-                <li key={charIndex} className="text-gray-300">
-                  <strong className="text-white">{char.name}:</strong> {char.description}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-400 italic">No specific characters noted in this chapter.</p>
-          )}
-        </AccordionItem>
-      ))}
-
-      {/* --- Section 3: Branching Points --- */}
-      <h2 className="text-3xl font-bold mt-12 mb-4 text-white border-b-2 border-gray-700 pb-2">Potential Branching Points</h2>
-      <div className="space-y-4">
-        {allBranchingPoints.length > 0 ? (
-          allBranchingPoints.map((point: {point: string; chapterTitle: string}, index: number) => (
-            <div key={index} className="bg-gray-800 p-5 rounded-lg shadow-md">
-              <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                <strong className="text-blue-400 block mb-1">(From: {point.chapterTitle})</strong>
-                {point.point}
-              </p>
+/**
+ * Renders the view for Sequential analysis
+ */
+function SequentialAnalysisView({ data, openChapters, onToggle }: {
+  data: SequentialStoryAnalysis;
+  openChapters: Record<string, boolean>;
+  onToggle: (key: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      {Object.entries(data).map(([key, chapter]) => (
+        <div key={key} className="bg-white rounded-xl border border-gray-300 overflow-hidden shadow-md">
+          <button
+            onClick={() => onToggle(key)}
+            className="w-full flex justify-between items-center p-5 text-left hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+          >
+            <div className="flex items-center space-x-3">
+              <span className="text-xl font-medium text-gray-800">Chapter {key}</span>
+              <span className="text-lg font-semibold text-blue-700">
+                (Score: {chapter.score.score})
+              </span>
             </div>
-          ))
-        ) : (
-          <p className="text-gray-400 italic">No specific branching points were identified.</p>
-        )}
-      </div>
+            {openChapters[key] ? <FaChevronDown /> : <FaChevronRight />}
+          </button>
+          {openChapters[key] && (
+            <div className="p-5 bg-white border-t border-gray-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-blue-700">Outline</h3>
+                  <pre className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 overflow-x-auto max-h-96 shadow-inner border border-gray-300">
+                    <code>{JSON.stringify(chapter.chapterOutline, null, 2)}</code>
+                  </pre>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-3 text-purple-700">Characters</h3>
+                  <pre className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 overflow-x-auto max-h-96 shadow-inner border border-gray-300">
+                    <code>{JSON.stringify(chapter.characters, null, 2)}</code>
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
-      {/* --- Section 4: Master Prompt --- */}
-      <h2 className="text-3xl font-bold mt-12 mb-4 text-white border-b-2 border-gray-700 pb-2">Generation Details</h2>
-      <AccordionItem title="View Master Prompt Used">
-        <pre className="text-gray-300 bg-gray-900 p-4 rounded-md whitespace-pre-wrap text-sm font-mono leading-relaxed">
-          {master_prompt || "No master prompt was recorded."}
-        </pre>
-      </AccordionItem>
+/**
+ * Renders the view for Contextual (Master Document) analysis
+ */
+function ContextualAnalysisView({ data, openChapters, onToggle }: {
+  data: ContextualStoryAnalysis;
+  openChapters: Record<string, boolean>;
+  onToggle: (key: string) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      {Object.entries(data).map(([key, chapter]) => (
+        <div key={key} className="bg-white rounded-xl border border-gray-300 overflow-hidden shadow-md">
+          <button
+            onClick={() => onToggle(key)}
+            className="w-full flex justify-between items-center p-5 text-left hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+          >
+            <div className="flex items-center space-x-3">
+              <span className="text-xl font-medium text-gray-800">Chapter {key}</span>
+              <span className="text-lg font-semibold text-blue-700">
+                (Score: {chapter.score.score})
+              </span>
+            </div>
+            {openChapters[key] ? <FaChevronDown /> : <FaChevronRight />}
+          </button>
+          {openChapters[key] && (
+            <div className="p-5 bg-white border-t border-gray-200 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-green-700">Master Story Document</h3>
+                <pre className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 overflow-x-auto max-h-96 shadow-inner border border-gray-300">
+                  <code>{JSON.stringify(chapter.masterStoryDocument, null, 2)}</code>
+                </pre>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-gray-700">Score Rationale</h3>
+                <p className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 shadow-inner border border-gray-300">
+                  {chapter.score.rationale}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
