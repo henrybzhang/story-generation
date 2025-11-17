@@ -239,7 +239,7 @@ export const MasterStoryDocumentSchema = z.object({
     ),
 });
 
-export const sequentialAnalysisSchema = z.object({
+export const individualAnalysisSchema = z.object({
   chapterOutline: ChapterOutlineSchema.describe("The chapter outline."),
   characters: z
     .array(CharacterAnalysisSchema)
@@ -253,8 +253,8 @@ export const contextualAnalysisSchema = z.object({
 });
 
 // You can now infer the TypeScript type directly from the schema
-export type SequentialChapterAnalysis = z.infer<
-  typeof sequentialAnalysisSchema
+export type IndividualChapterAnalysis = z.infer<
+  typeof individualAnalysisSchema
 >;
 export type ContextualChapterAnalysis = z.infer<
   typeof contextualAnalysisSchema

@@ -6,7 +6,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/server.js",
     "dev": "tsx watch src/server.ts",
-    "build": "tsc"
+    "worker": "tsx watch src/worker.ts",
+    "build": "tsc",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "pnpm dotenv -e .env -- prisma migrate dev"
   },
   "keywords": [],
   "author": "",
@@ -15,9 +18,12 @@
   "dependencies": {
     "@langchain/core": "^0.3.72",
     "@langchain/openai": "^0.6.9",
+    "@prisma/client": "^6.19.0",
     "@types/jsonwebtoken": "^9.0.10",
+    "bullmq": "^5.63.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",
+    "dotenv-cli": "^11.0.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "pino": "^9.9.0",
@@ -26,7 +32,8 @@
   "devDependencies": {
     "@story-generation/types": "workspace:*",
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3"
+    "@types/express": "^5.0.3",
+    "prisma": "^6.19.0"
   },
   "type": "module"
 }

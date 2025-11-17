@@ -2,6 +2,7 @@
 import React from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css'; // Import the global styles
+import Providers from '@/lib/providers';
 
 // Setup the font
 const inter = Inter({ subsets: ['latin'] });
@@ -25,7 +26,7 @@ export default function RootLayout({ children }) {
           - We'll use the 'max-w-4xl' you had on your page
         */}
         <main className="max-w-4xl mx-auto px-4 py-12">
-          {children}
+          <Providers>{children}</Providers>
         </main>
       </body>
     </html>

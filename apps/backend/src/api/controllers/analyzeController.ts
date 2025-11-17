@@ -1,275 +1,160 @@
-import {
-  type AnalysisMethod,
-  type AnalysisRequest,
-  type AnalysisResult,
-  type ChapterData,
-  type ChapterOutline,
-  type CompleteContextualChapterAnalysis,
-  type CompleteSequentialChapterAnalysis,
-  type ContextualStoryAnalysis,
-  contextualAnalysisSchema,
-  type MasterStoryDocument,
-  MasterStoryDocumentSchema,
-  type SequentialChapterAnalysis,
-  scoreSchema,
-  sequentialAnalysisSchema,
-} from "@story-generation/types";
+import type { AnalysisRequest } from "@story-generation/types";
 import type { Request, Response } from "express";
-import {
-  createContextualAnalysisPrompt,
-  createNextMasterDocFromOutlinePrompt,
-  createSequentialAnalysisPrompt,
-} from "@/lib/analysisSchema.js";
-import {
-  scorePrompt,
-  scorePromptWithMasterStoryDocument,
-} from "@/lib/scoreSchema.js";
-import { createLangChainClient } from "@/utils/langchain.js";
+import { prisma } from "@/src/lib/prisma.js";
+import { AppError } from "@/src/middleware/AppError.js";
+import { processAnalysisJob } from "@/src/services/analysisService.js";
 
-// Initialize LangChain client
-const langChainClient = createLangChainClient();
-
-/**
- * Helper function to analyze content with all available methods
- */
-const analyzeWithAllMethods = async (storyData: Map<string, ChapterData>) => {
-  const methods: AnalysisMethod[] = ["sequential", "contextual"];
-  const results: Record<string, any> = {};
-  const errors: string[] = [];
-
-  // Run all methods in parallel
-  await Promise.all(
-    methods.map(async (method) => {
-      try {
-        const result = await analyzeStory(storyData, method);
-        if (result.success) {
-          results[method] = result.data;
-        } else {
-          errors.push(`${method}: ${result.error}`);
-          results[method] = { error: result.error };
-        }
-      } catch (error) {
-        const errorMsg =
-          error instanceof Error ? error.message : "Unknown error";
-        errors.push(`${method}: ${errorMsg}`);
-        results[method] = { error: errorMsg };
-      }
-    }),
-  );
-
-  return { results, errors };
-};
-
-const calculateScore = async (
-  chapterData: ChapterData,
-  chapterOutline: ChapterOutline,
-  masterStoryDocument?: MasterStoryDocument,
-) => {
-  let prompt: string;
-  if (masterStoryDocument) {
-    prompt = scorePromptWithMasterStoryDocument(
-      chapterData.content,
-      chapterOutline,
-      masterStoryDocument,
-    );
-  } else {
-    prompt = scorePrompt(chapterData.content, chapterOutline);
-  }
-
-  const response = await langChainClient
-    .withStructuredOutput(scoreSchema)
-    .invoke(prompt);
-
-  return response;
-};
-
-/**
- * Analyze text input with all available methods
- */
-const analyzeText = async (req: Request, res: Response) => {
+export const startAnalysisJobs = async (req: Request, res: Response) => {
+  const { storyId } = req.body as AnalysisRequest;
   try {
-    const { storyData } = req.body as AnalysisRequest;
+    const jobs = await Promise.allSettled([
+      processAnalysisJob(storyId, "contextual"),
+      processAnalysisJob(storyId, "individual"),
+    ]);
 
-    if (!storyData || storyData.size === 0) {
-      return res.status(400).json({ error: "Story data is required" });
-    }
-
-    const { results, errors } = await analyzeWithAllMethods(
-      new Map(Object.entries(storyData)),
-    );
-
-    if (errors.length > 0) {
-      console.warn("Some analyses completed with errors:", errors);
-    }
-
-    res.json({
-      success: true,
-      data: results,
-      methods: Object.keys(results),
-      ...(errors.length > 0 && { warnings: errors }),
+    // 3. Return 202 Accepted immediately
+    res.status(202).json({
+      message: "Analysis job accepted",
+      jobs: jobs.map((job) =>
+        job.status === "fulfilled" ? job.value : job.reason,
+      ),
     });
   } catch (error) {
-    console.error("Error in analyzeText:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to analyze text",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
+    const cause = error instanceof Error ? error : undefined;
+    throw new AppError(
+      "Failed to submit analysis jobs",
+      500,
+      { storyId },
+      cause,
+    );
   }
 };
 
-/**
- * Analyze uploaded files with all available methods
- */
-const analyzeFiles = async (req: Request, res: Response) => {
-  res.status(500).json({ error: "Not implemented" });
-};
+export const getAnalysisJobData = async (req: Request, res: Response) => {
+  const { jobId } = req.params;
 
-const analyzeLink = async (req: Request, res: Response) => {
-  res.status(500).json({ error: "Not implemented" });
-};
-
-/**
- * Main analysis function that handles the analysis based on the specified method
- */
-const analyzeStory = async (
-  storyData: Map<string, ChapterData>,
-  method: AnalysisMethod = "contextual",
-): Promise<
-  AnalysisResult<
-    CompleteSequentialChapterAnalysis | CompleteContextualChapterAnalysis
-  >
-> => {
-  switch (method) {
-    case "sequential":
-      return analyzeSequentially(storyData);
-    case "contextual":
-      return analyzeWithContext(storyData);
-    default:
-      return { success: false, error: "Invalid analysis method" };
+  if (!jobId) {
+    // Or return null, or handle the error as appropriate for your app
+    throw new AppError("No job ID provided", 400);
   }
-};
 
-/**
- * Method 2: Analyze chapters sequentially without context from previous chapters
- */
-const analyzeSequentially = async (
-  storyData: Map<string, ChapterData>,
-): Promise<
-  AnalysisResult<Record<string, CompleteSequentialChapterAnalysis>>
-> => {
-  const results: Record<string, CompleteSequentialChapterAnalysis> = {};
-
-  const analysisPromises = Array.from(storyData.entries()).map(
-    async ([chapterNum, content]) => {
-      try {
-        const prompt = createSequentialAnalysisPrompt(content);
-
-        const response: SequentialChapterAnalysis = await langChainClient
-          .withStructuredOutput(sequentialAnalysisSchema)
-          .invoke(prompt);
-
-        const score = await calculateScore(content, response.chapterOutline);
-
-        // Return the key and data for this chapter
-        return {
-          chapterKey: `chapter_${chapterNum}`,
-          data: {
-            ...response,
-            score,
+  try {
+    const job = await prisma.analysisJob.findUnique({
+      where: {
+        id: jobId,
+      },
+      select: {
+        id: true,
+        status: true,
+        method: true,
+        storyAnalysis: {
+          select: {
+            id: true,
+            chapterAnalyses: true,
           },
-        };
-      } catch (error) {
-        console.error(`Error analyzing chapter ${chapterNum}:`, error);
-        throw new Error(
-          `Failed to process chapter ${chapterNum}: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`,
-        );
-      }
-    },
-  );
+        },
+      },
+    });
 
-  const promiseResults = await Promise.allSettled(analysisPromises);
-
-  promiseResults.forEach((result) => {
-    if (result.status === "fulfilled") {
-      results[result.value.chapterKey] = result.value.data;
-    } else {
-      console.warn(`A chapter analysis failed: ${result.reason}`);
+    if (!job) {
+      return res.status(404).json({ error: "Job not found" });
     }
-  });
 
-  if (Object.keys(results).length === 0) {
-    return {
-      success: false,
-      error: `Failed to analyze any chapters. Check console for details.`,
-    };
+    res.status(200).json(job);
+  } catch (error) {
+    const cause = error instanceof Error ? error : undefined;
+    throw new AppError("Failed to fetch job status", 500, { jobId }, cause);
+  }
+};
+
+export const getAnalysisJobsByStoryId = async (req: Request, res: Response) => {
+  const { storyId } = req.params;
+  if (!storyId) {
+    // Or return null, or handle the error as appropriate for your app
+    throw new AppError("No story ID provided", 400);
   }
 
-  return {
-    success: true,
-    data: results,
-  };
+  try {
+    const jobs = await prisma.analysisJob.findMany({
+      where: {
+        storyDataId: storyId,
+      },
+    });
+
+    if (!jobs) {
+      return res.status(404).json({ error: "Jobs not found" });
+    }
+
+    res.status(200).json(jobs);
+  } catch (error) {
+    const cause = error instanceof Error ? error : undefined;
+    throw new AppError(
+      "Failed to fetch jobs by storyId",
+      500,
+      { storyId },
+      cause,
+    );
+  }
 };
 
 /**
- * Method 3: Analyze chapters with context from previous chapters
+ * DELETE /analysis/:storyId
+ * Deletes an AnalysisJob based on its related storyId.
  */
-const analyzeWithContext = async (
-  storyData: Map<string, ChapterData>,
-): Promise<
-  AnalysisResult<Record<string, CompleteContextualChapterAnalysis>>
-> => {
+export const deleteAnalysisByStoryId = async (req: Request, res: Response) => {
+  const { storyId } = req.params;
+
+  if (!storyId) {
+    throw new AppError("No story ID provided", 400);
+  }
+
   try {
-    const results: Record<string, CompleteContextualChapterAnalysis> = {};
-    let currentMasterDocument: MasterStoryDocument | undefined;
-
-    for (const [chapterNum, content] of storyData.entries()) {
-      const prompt = createContextualAnalysisPrompt(
-        content,
-        currentMasterDocument,
-      );
-
-      const response: ContextualStoryAnalysis = await langChainClient
-        .withStructuredOutput(contextualAnalysisSchema)
-        .invoke(prompt);
-
-      const score = await calculateScore(content, response.chapterOutline);
-
-      const masterDocPrompt = await createNextMasterDocFromOutlinePrompt(
-        response.chapterOutline,
-        currentMasterDocument,
-      );
-
-      currentMasterDocument = await langChainClient
-        .withStructuredOutput(MasterStoryDocumentSchema)
-        .invoke(masterDocPrompt);
-
-      results[`chapter_${chapterNum}`] = {
-        score,
-        masterStoryDocument: currentMasterDocument,
-      };
-    }
-
-    return {
-      success: true,
-      data: results,
-    };
+    // Use the unique 'storyDataId' field to find and delete
+    // the correct analysis job.
+    await prisma.analysisJob.deleteMany({
+      where: {
+        storyDataId: storyId,
+      },
+    });
+    res.status(204).send(); // 204 No Content
   } catch (error) {
-    console.error("Error in analyzeWithContext:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+    const cause = error instanceof Error ? error : undefined;
+    throw new AppError(
+      "Failed to delete analysis with storyId",
+      500,
+      { storyId },
+      cause,
+    );
   }
 };
 
-export {
-  analyzeText,
-  analyzeFiles,
-  analyzeLink,
-  analyzeStory,
-  analyzeSequentially,
-  analyzeWithContext,
+/**
+ * DELETE /analysis/:storyId
+ * Deletes an AnalysisJob based on its related storyId.
+ */
+export const deleteAnalysisByJobId = async (req: Request, res: Response) => {
+  const { jobId } = req.params;
+
+  if (!jobId) {
+    throw new AppError("No job ID provided", 400);
+  }
+
+  try {
+    // Use the unique 'storyDataId' field to find and delete
+    // the correct analysis job.
+    await prisma.analysisJob.delete({
+      where: {
+        id: jobId,
+      },
+    });
+    res.status(204).send(); // 204 No Content
+  } catch (error) {
+    const cause = error instanceof Error ? error : undefined;
+    throw new AppError(
+      "Failed to delete analysis with jobId",
+      500,
+      { jobId },
+      cause,
+    );
+  }
 };

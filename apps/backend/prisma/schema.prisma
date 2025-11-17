@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AnalysisJobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model AnalysisJob {
+  id        String @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  status    AnalysisJobStatus @default(PENDING)
+
+  method    String
+
+  storyData StoryData @relation(fields: [storyDataId], references: [id], onDelete: Cascade)
+  storyDataId String
+
+  storyAnalysis StoryAnalysis?
+}
+
+model StoryAnalysis {
+  id        String @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapterAnalyses ChapterAnalysis[]
+
+  analysisJob AnalysisJob @relation(fields: [analysisJobId], references: [id], onDelete: Cascade)
+  analysisJobId String @unique
+}
+
+model ChapterAnalysis {
+  id        String @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapterData ChapterData @relation(fields: [chapterDataId], references: [id], onDelete: Cascade)
+  chapterDataId String
+
+  analysisResults Json?
+
+  score Int
+  scoreRationale String
+
+  storyAnalysis StoryAnalysis @relation(fields: [storyAnalysisId], references: [id], onDelete: Cascade)
+  storyAnalysisId String
+}
+
+model StoryData {
+  id        String @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  chapters ChapterData[]
+
+  analysisJob AnalysisJob[]
+}
+
+model ChapterData {
+  id        String @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  content   String
+  number    Int
+  title     String
+
+  chapterAnalysis ChapterAnalysis[]
+
+  storyData   StoryData @relation(fields: [storyDataId], references: [id], onDelete: Cascade)
+  storyDataId String
+}

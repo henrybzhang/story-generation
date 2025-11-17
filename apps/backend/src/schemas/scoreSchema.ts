@@ -1,5 +1,8 @@
-import type { ChapterOutline } from "./analysisSchema.js";
-import { kinkLexicon, type MasterStoryDocument } from "./analysisSchema.js";
+import type {
+  ChapterOutline,
+  MasterStoryDocument,
+} from "@story-generation/types";
+import { kinkLexicon } from "./analysisSchema.js";
 
 export const scorePromptWithMasterStoryDocument = (
   sourceChapterText: string,
