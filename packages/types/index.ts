@@ -1,7 +1,7 @@
 import z from "zod";
 import type {
-  FinishedDirectChapterAnalysis,
-  FinishedIndirectChapterAnalysis,
+  ChapterSummary,
+  MasterStoryDocument,
   Score,
 } from "./analysisTypes";
 
@@ -53,11 +53,16 @@ export type BaseAnalysisData = {
 };
 
 export type IndirectChapterAnalysisData = BaseAnalysisData & {
-  analysis: FinishedIndirectChapterAnalysis;
+  analysis: {
+    chapterSummary: ChapterSummary;
+    masterStoryDocument: MasterStoryDocument;
+  };
 };
 
 export type DirectChapterAnalysisData = BaseAnalysisData & {
-  analysis: FinishedDirectChapterAnalysis;
+  analysis: {
+    masterStoryDocument: MasterStoryDocument;
+  };
 };
 
 // Base type for a job

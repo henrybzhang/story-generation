@@ -17,7 +17,7 @@ import { createLangChainClient } from "@/src/services/langchainService.js";
 import { analysisQueue } from "../lib/queue.js";
 import {
   createIndirectAnalysisPrompt,
-  createNextMasterDocFromChapterSummaryPrompt,
+  updateMasterDocFromAnalysisPrompt,
 } from "../schemas/indirectPrompt.js";
 
 const langChainClient = createLangChainClient();
@@ -74,15 +74,12 @@ const analyzeChapterIndirectly = async (
   masterStoryDocument?: MasterStoryDocument,
 ): Promise<IndirectChapterAnalysisData> => {
   try {
-    const prompt = createIndirectAnalysisPrompt(
-      chapterData,
-      masterStoryDocument,
-    );
+    const prompt = createIndirectAnalysisPrompt(chapterData);
     const chapterSummary: ChapterSummary = await langChainClient
       .withStructuredOutput(ChapterSummarySchema)
       .invoke(prompt);
 
-    const masterDocPrompt = await createNextMasterDocFromChapterSummaryPrompt(
+    const masterDocPrompt = await updateMasterDocFromAnalysisPrompt(
       chapterSummary,
       masterStoryDocument,
     );
@@ -91,7 +88,11 @@ const analyzeChapterIndirectly = async (
       .withStructuredOutput(MasterStoryDocumentSchema)
       .invoke(masterDocPrompt);
 
-    const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
+    // const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
+    const score = {
+      value: 100,
+      rationale: "TBD",
+    };
 
     return {
       analysis: {
@@ -125,7 +126,11 @@ const analyzeChapterDirectly = async (
       .withStructuredOutput(MasterStoryDocumentSchema)
       .invoke(masterDocPrompt);
 
-    const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
+    // const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
+    const score = {
+      value: 100,
+      rationale: "TBD",
+    };
 
     return {
       analysis: {
