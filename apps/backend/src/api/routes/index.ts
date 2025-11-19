@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  deleteAnalysisByJobId,
   getAnalysisJobData,
   getAnalysisJobsByStoryId,
   startAnalysisJobs,
@@ -23,7 +24,8 @@ router.post("/analyze", startAnalysisJobs);
 // Getting a job's data is retrieving data, so it
 // should use GET.
 router.get("/analyze/data/:jobId", getAnalysisJobData);
-router.get("/analyze/:storyId/jobs", getAnalysisJobsByStoryId);
+router.get("/stories/:storyId/jobs", getAnalysisJobsByStoryId);
+router.delete("/analyze/:jobId", deleteAnalysisByJobId);
 
 // Story routes
 router.get("/stories", getStories);

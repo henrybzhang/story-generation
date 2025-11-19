@@ -1,10 +1,10 @@
 'use client';
 
 import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
-import { IndividualStoryAnalysis } from '@story-generation/types';
+import { IndividualAnalysisJobData } from '@story-generation/types';
 
 type IndividualAnalysisViewProps = {
-  data: IndividualStoryAnalysis;
+  data: IndividualAnalysisJobData;
   openChapters: Record<string, boolean>;
   onToggle: (key: string) => void;
 };
@@ -17,7 +17,7 @@ export function IndividualAnalysisView({
   openChapters,
   onToggle,
 }: IndividualAnalysisViewProps) {
-  const sortedChapters = data.sort(
+  const sortedChapters = data.storyAnalysis.chapterAnalyses.sort(
     (a, b) => a.number - b.number
   );
   return (
@@ -39,7 +39,7 @@ export function IndividualAnalysisView({
                 Chapter {chapter.number}
               </span>
               <span className="text-lg font-semibold text-blue-700">
-                (Score: {chapter.score})
+                (Score: {chapter.score.value})
               </span>
             </div>
             {openChapters[key] ? <FaChevronDown /> : <FaChevronRight />}
@@ -53,7 +53,7 @@ export function IndividualAnalysisView({
                   </h3>
                   <pre className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 overflow-x-auto max-h-96 shadow-inner border border-gray-300">
                     <code>
-                      {JSON.stringify(chapter.analysisResults.analysis.chapterOutline, null, 2)}
+                      {JSON.stringify(chapter.analysis.chapterOutline, null, 2)}
                     </code>
                   </pre>
                 </div>
@@ -63,7 +63,7 @@ export function IndividualAnalysisView({
                   </h3>
                   <pre className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 overflow-x-auto max-h-96 shadow-inner border border-gray-300">
                     <code>
-                      {JSON.stringify(chapter.analysisResults.analysis.characters, null, 2)}
+                      {JSON.stringify(chapter.analysis.characters, null, 2)}
                     </code>
                   </pre>
                 </div>

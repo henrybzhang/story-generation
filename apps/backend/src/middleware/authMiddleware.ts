@@ -8,7 +8,7 @@ interface JwtPayload {
 
 export const authMiddleware = (
   req: Request,
-  res: Response,
+  _: Response,
   next: NextFunction,
 ) => {
   const authHeader = req.headers.authorization;
@@ -34,6 +34,11 @@ export const authMiddleware = (
 
     next();
   } catch (err) {
-    throw new AppError("Authentication invalid: Invalid token", 401);
+    throw new AppError(
+      "Authentication invalid: Invalid token",
+      401,
+      {},
+      err as Error,
+    );
   }
 };

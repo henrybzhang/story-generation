@@ -3,7 +3,6 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { FaCopy, FaCheck } from 'react-icons/fa';
-import { AnalysisMethod, ContextualStoryAnalysis, IndividualStoryAnalysis } from '@story-generation/types';
 import { useAnalysisData } from '@/features/analysis/hooks/useAnalysisData';
 import { FullPageLoader } from '@/components/FullPageLoader';
 import { AnalysisJobSelector } from '@/features/analysis/AnalysisJobSelector';
@@ -30,7 +29,7 @@ function AnalysisPageContent() {
   // ★ The hook provides all data and loading states
   const {
     jobList,
-    storyAnalysisData,
+    jobData,
     isLoading,
     error,
     isPolling,
@@ -41,12 +40,12 @@ function AnalysisPageContent() {
 
   // On Data Load: Re-build the master prompt
   useEffect(() => {
-    if (storyAnalysisData) {
+    if (jobData) {
       setMasterPrompt(
-        buildMasterPrompt(storyAnalysisData)
+        buildMasterPrompt(jobData)
       );
     }
-  }, [storyAnalysisData]);
+  }, [jobData]);
 
   // --- HANDLERS ---
 
@@ -114,7 +113,7 @@ function AnalysisPageContent() {
   }
 
   // 6. Results Mode (a job is selected and data is loaded)
-  if (storyAnalysisData) {
+  if (jobData) {
     return (
       <div className="min-h-screen bg-stone-100 text-gray-900 p-6 md:p-10">
         <div className="max-w-5xl mx-auto">
@@ -125,15 +124,15 @@ function AnalysisPageContent() {
             </button>
           </div>
           <div className="space-y-4 mb-12">
-            {storyAnalysisData.method === 'individual' ? (
+            {jobData.method === 'individual' ? (
               <IndividualAnalysisView
-                data={storyAnalysisData.storyAnalysis as IndividualStoryAnalysis}
+                data={jobData}
                 openChapters={openChapters}
                 onToggle={handleToggleChapter}
               />
             ) : (
               <ContextualAnalysisView
-                data={storyAnalysisData.storyAnalysis as ContextualStoryAnalysis}
+                data={jobData}
                 openChapters={openChapters}
                 onToggle={handleToggleChapter}
               />

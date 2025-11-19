@@ -1,13 +1,14 @@
 import {
   type ChapterOutline,
-  type CompleteContextualChapterAnalysis,
-  type CompleteIndividualChapterAnalysis,
-  type ContextualChapterAnalysis,
+  type ContextualChapterAnalysisData,
+  type ContextualChapterPartialAnalysis,
   contextualAnalysisSchema,
   type IndividualChapterAnalysis,
+  type IndividualChapterAnalysisData,
   individualAnalysisSchema,
   type MasterStoryDocument,
   MasterStoryDocumentSchema,
+  type Score,
   scoreSchema,
 } from "@story-generation/types";
 import type { Request, Response } from "express";
@@ -17,14 +18,13 @@ import {
   createContextualAnalysisPrompt,
   createIndividualAnalysisPrompt,
   createNextMasterDocFromOutlinePrompt,
-} from "@/src/schemas/analysisSchema.js";
+} from "@/src/schemas/directPrompt.js";
 import {
   scorePrompt,
   scorePromptWithMasterStoryDocument,
 } from "@/src/schemas/scoreSchema.js";
 import { createLangChainClient } from "@/src/services/langchainService.js";
 import { analysisQueue } from "../lib/queue.js";
-import type { ContextualChapterAnalysisRequest } from "../types/story.js";
 
 const langChainClient = createLangChainClient();
 
@@ -64,7 +64,7 @@ const calculateScore = async (
   chapterData: ChapterData,
   chapterOutline: ChapterOutline,
   masterStoryDocument?: MasterStoryDocument,
-) => {
+): Promise<Score> => {
   let prompt: string;
   if (masterStoryDocument) {
     prompt = scorePromptWithMasterStoryDocument(
@@ -83,68 +83,13 @@ const calculateScore = async (
   return response;
 };
 
-const analyzeChapter = async (req: Request, res: Response) => {
-  try {
-    const { chapterData, method, masterStoryDocument } =
-      req.body as ContextualChapterAnalysisRequest;
-
-    if (!chapterData || !chapterData.content) {
-      return res.status(400).json({
-        success: false,
-        error: "Chapter data and content are required",
-      });
-    }
-
-    if (!method) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Analysis method is required" });
-    }
-
-    if (method === "individual") {
-      const result = await analyzeChapterIndividually(chapterData);
-      return res.json({ success: true, data: result });
-    }
-
-    // --- Handle Contextual Analysis ---
-    if (method === "contextual") {
-      // Note: For the *first* chapter, masterStoryDocument should be undefined.
-      // The client must pass the returned masterStoryDocument for subsequent chapters.
-      if (chapterData.number !== 1 && !masterStoryDocument) {
-        return res.status(400).json({
-          success: false,
-          error: "Master story document is required for subsequent chapters",
-        });
-      }
-
-      const result = await analyzeChapterWithContext(
-        chapterData,
-        masterStoryDocument,
-      );
-      return res.json({ success: true, data: result });
-    }
-
-    // --- Handle Invalid Method ---
-    return res
-      .status(400)
-      .json({ success: false, error: "Invalid analysis method specified" });
-  } catch (error) {
-    console.error("Error in analyzeChapter:", error);
-    res.status(500).json({
-      success: false,
-      error: "Failed to analyze chapter",
-      details: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-};
-
 /**
  * Analyzes a single chapter without context.
  * This logic is extracted from the old `analyzeIndividually` loop.
  */
 const analyzeChapterIndividually = async (
   chapterData: ChapterData,
-): Promise<CompleteIndividualChapterAnalysis> => {
+): Promise<IndividualChapterAnalysisData> => {
   try {
     const prompt = createIndividualAnalysisPrompt(chapterData);
 
@@ -159,6 +104,7 @@ const analyzeChapterIndividually = async (
     // 3. Combine and return
     return {
       analysis,
+      number: chapterData.number,
       score,
     };
   } catch (error) {
@@ -181,14 +127,14 @@ const analyzeChapterIndividually = async (
 const analyzeChapterWithContext = async (
   chapterData: ChapterData,
   masterStoryDocument?: MasterStoryDocument,
-): Promise<CompleteContextualChapterAnalysis> => {
+): Promise<ContextualChapterAnalysisData> => {
   try {
     // --- Call 1: Contextual Analysis (Blocking) ---
     const prompt = createContextualAnalysisPrompt(
       chapterData,
       masterStoryDocument,
     );
-    const response: ContextualChapterAnalysis = await langChainClient
+    const response: ContextualChapterPartialAnalysis = await langChainClient
       .withStructuredOutput(contextualAnalysisSchema)
       .invoke(prompt);
 
@@ -213,8 +159,9 @@ const analyzeChapterWithContext = async (
     // The client will receive this and must send `newMasterDocument`
     // with the *next* chapter's request.
     return {
+      analysis: newMasterDocument,
+      number: chapterData.number,
       score,
-      masterStoryDocument: newMasterDocument,
     };
   } catch (error) {
     console.error("Error in analyzeChapterWithContext:", error);
@@ -241,7 +188,6 @@ const analyzeLink = async (req: Request, res: Response) => {
 };
 
 export {
-  analyzeChapter, // Replaces analyzeText
   analyzeFiles,
   analyzeLink,
   // Exporting the new single-chapter helpers for potential internal use or testing

@@ -76,17 +76,13 @@ export const useAnalysisData = (storyId: string, selectedJobId: string | null) =
   // "Polling" means it's currently refetching, but not yet done
   const isPolling = jobQuery.isFetching && !isFinalStatus;
 
-  // The final analysis data only exists when the job is complete
-  const storyAnalysisData =
-    jobData?.status === 'COMPLETED' ? jobData : null;
-
   // Combine errors from either query
   const error = listQuery.error?.message || jobQuery.error?.message || null;
 
   return {
     jobList: listQuery.data || null,
 
-    storyAnalysisData,
+    jobData,
     isPolling,
     pollingMessage: jobData?.status === 'COMPLETED' ? 'Analysis complete' : 'Analysis in progress',
     

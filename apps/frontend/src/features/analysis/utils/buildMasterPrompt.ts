@@ -1,4 +1,4 @@
-import { AnalysisJobData, ContextualStoryAnalysis, IndividualStoryAnalysis } from '@story-generation/types';
+import { AnalysisJobData, } from '@story-generation/types';
 
 /**
  * Builds the master prompt string from the analysis data.
@@ -10,24 +10,24 @@ export function buildMasterPrompt(
 
   if (analysis.method === 'individual') {
     // 1. Assert the type of storyAnalysis based on the method
-    const storyAnalysis = analysis.storyAnalysis as IndividualStoryAnalysis;
+    const storyAnalysis = analysis.storyAnalysis;
     context += `[STORY CONTEXT SO FAR (Individual)]\n---\n`;
 
     // 2. Use the correctly-typed variable
-    const sortedChapters = [...storyAnalysis].sort(
+    const sortedChapters = [...storyAnalysis.chapterAnalyses].sort(
       (a, b) => a.number - b.number,
     );
     for (const chapter of sortedChapters) {
       context += `[CHAPTER ${chapter.number}]\n`;
       // 3. No 'as' needed here, chapter.analysisResults is already the correct type
-      const chapterAnalysis = chapter.analysisResults;
+      const chapterAnalysis = chapter.analysis;
       context += `OUTLINE:\n${JSON.stringify(
-        chapterAnalysis.analysis.chapterOutline,
+        chapterAnalysis.chapterOutline,
         null,
         2,
       )}\n\n`;
       context += `CHARACTERS:\n${JSON.stringify(
-        chapterAnalysis.analysis.characters,
+        chapterAnalysis.characters,
         null,
         2,
       )}\n\n`;
@@ -35,22 +35,22 @@ export function buildMasterPrompt(
     }
   } else if (analysis.method === 'contextual') {
     // 1. Assert the type of storyAnalysis based on the method
-    const storyAnalysis = analysis.storyAnalysis as ContextualStoryAnalysis;
+    const storyAnalysis = analysis.storyAnalysis;
 
     // 2. Get the last chapter (this is an object from the array, or undefined)
-    const lastChapter = [...storyAnalysis]
+    const lastChapter = [...storyAnalysis.chapterAnalyses]
       .sort((a, b) => b.number - a.number)
       .at(0);
 
     // 3. Check for the chapter AND its results, then access the property correctly
-    if (!lastChapter || !lastChapter.analysisResults) {
+    if (!lastChapter || !lastChapter.analysis) {
       return 'Error: Could not find masterStoryDocument in the latest chapter.';
     }
 
     context += `[MASTER STORY DOCUMENT]\n`;
     // 4. Access the masterStoryDocument from the (now correctly typed) analysisResults
     context += JSON.stringify(
-      lastChapter.analysisResults.masterStoryDocument,
+      lastChapter.analysis,
       null,
       2,
     );

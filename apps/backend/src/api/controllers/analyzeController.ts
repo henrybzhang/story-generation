@@ -50,20 +50,67 @@ export const getAnalysisJobData = async (req: Request, res: Response) => {
         storyAnalysis: {
           select: {
             id: true,
-            chapterAnalyses: true,
+            chapterAnalyses: {
+              select: {
+                id: true, // Good for error logging
+                analysis: true,
+                score: true,
+                chapterData: {
+                  select: {
+                    number: true,
+                  },
+                },
+              },
+              orderBy: {
+                // Optional: Good practice to ensure order
+                chapterData: {
+                  number: "asc",
+                },
+              },
+            },
           },
         },
       },
     });
 
     if (!job) {
-      return res.status(404).json({ error: "Job not found" });
+      throw new AppError("Job not found", 404, { jobId });
     }
 
-    res.status(200).json(job);
+    if (!job.storyAnalysis || !job.storyAnalysis.chapterAnalyses) {
+      throw new AppError("Job is missing critical analysis data.", 500, {
+        jobId,
+      });
+    }
+
+    const transformedChapters = job.storyAnalysis.chapterAnalyses.map(
+      (chapter) => {
+        const { chapterData, ...rest } = chapter;
+
+        return {
+          ...rest,
+          number: chapterData.number,
+        };
+      },
+    );
+
+    const reshapedJob = {
+      ...job,
+      storyAnalysis: {
+        ...job.storyAnalysis,
+        chapterAnalyses: transformedChapters,
+      },
+    };
+
+    res.status(200).json(reshapedJob);
   } catch (error) {
-    const cause = error instanceof Error ? error : undefined;
-    throw new AppError("Failed to fetch job status", 500, { jobId }, cause);
+    const cause = error instanceof Error ? error : new Error(String(error));
+    // Re-throwing AppError is fine if you have middleware to catch it
+    if (error instanceof AppError) {
+      throw error;
+    }
+    // Otherwise, wrap it
+    throw new AppError("Failed to fetch job data", 500, { jobId }, cause);
   }
 };
 

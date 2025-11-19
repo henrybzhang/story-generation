@@ -1,5 +1,3 @@
-import { UserChapterData } from "@story-generation/types";
-
 export type InputType = 'text' | 'link' | 'file';
 
 // Key for storing the active story ID in our app-state store

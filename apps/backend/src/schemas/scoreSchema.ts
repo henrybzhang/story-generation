@@ -2,7 +2,7 @@ import type {
   ChapterOutline,
   MasterStoryDocument,
 } from "@story-generation/types";
-import { kinkLexicon } from "./analysisSchema.js";
+import { kinkLexicon } from "./directPrompt.js";
 
 export const scorePromptWithMasterStoryDocument = (
   sourceChapterText: string,

@@ -10,27 +10,39 @@ import {
   analyzeChapterWithContext,
 } from "./services/analysisService.js";
 
+const log = (jobId: string, message: string) =>
+  console.log(`[${new Date().toISOString()}] [JOB ${jobId}] ${message}`);
+
 const runIndividualAnalysis = async (
   chapters: ChapterData[],
   storyAnalysisId: string,
   jobId: string,
 ) => {
-  console.log(`[JOB ${jobId}] Starting INDIVIDUAL track (parallel)...`);
+  log(jobId, "Starting individual track...");
   const individualPromises = chapters.map((chapter) =>
-    analyzeChapterIndividually(chapter).then((result) =>
-      prisma.chapterAnalysis.create({
-        data: {
-          analysisResults: result.analysis,
-          score: result.score.score,
-          scoreRationale: result.score.rationale,
-          chapterData: { connect: { id: chapter.id } },
-          storyAnalysis: { connect: { id: storyAnalysisId } },
-        },
+    analyzeChapterIndividually(chapter)
+      .then((result) =>
+        prisma.chapterAnalysis.create({
+          data: {
+            analysis: result.analysis,
+            chapterData: { connect: { id: chapter.id } },
+            storyAnalysis: { connect: { id: storyAnalysisId } },
+            score: {
+              create: {
+                value: result.score.value,
+                rationale: result.score.rationale,
+              },
+            },
+          },
+        }),
+      )
+      .then((createdAnalysis) => {
+        log(jobId, `Finished chapter ${chapter.number || chapter.id}.`);
+        return createdAnalysis;
       }),
-    ),
   );
   await Promise.all(individualPromises);
-  console.log(`[JOB ${jobId}] Finished INDIVIDUAL track.`);
+  log(jobId, "Finished INDIVIDUAL track.");
 };
 
 // --- 3. Track B: Run all Contextual Analyses Sequentially ---
@@ -39,7 +51,7 @@ const runContextualAnalysis = async (
   storyAnalysisId: string,
   jobId: string,
 ) => {
-  console.log(`[JOB ${jobId}] Starting CONTEXTUAL track (sequential)...`);
+  log(jobId, "Starting Contextual track...");
   let currentMasterDoc: MasterStoryDocument | undefined;
 
   for (const chapter of chapters) {
@@ -47,30 +59,31 @@ const runContextualAnalysis = async (
 
     await prisma.chapterAnalysis.create({
       data: {
-        analysisResults: result.masterStoryDocument, // Store the output doc
-        score: result.score.score,
-        scoreRationale: result.score.rationale,
+        analysis: result.analysis,
         chapterData: { connect: { id: chapter.id } },
         storyAnalysis: { connect: { id: storyAnalysisId } },
+        score: {
+          create: {
+            value: result.score.value,
+            rationale: result.score.rationale,
+          },
+        },
       },
     });
 
     // Pass the new master doc to the next iteration
-    currentMasterDoc = result.masterStoryDocument;
-    console.log(
-      `[JOB ${jobId}] CONTEXTUAL analysis for chapter ${chapter.number} complete.`,
-    );
+    currentMasterDoc = result.analysis;
+    log(jobId, `CONTEXTUAL analysis for chapter ${chapter.number} complete.`);
   }
-  console.log(`[JOB ${jobId}] Finished CONTEXTUAL track.`);
+  log(jobId, "Finished CONTEXTUAL track.");
 };
 
 // --- 4. The Main Worker ---
-// --- 4. The Main Worker ---
-const worker = new Worker(
+const worker = new Worker<{ jobId: string }>(
   "story-analysis",
   async (job) => {
     const { jobId } = job.data;
-    console.log(`[JOB ${jobId}] Starting...`);
+    log(jobId, "Starting...");
 
     try {
       // 1. Get the job data
@@ -93,15 +106,19 @@ const worker = new Worker(
       }
 
       // 2. Mark as RUNNING
-      // ... (rest of your logic) ...
+      await prisma.analysisJob.update({
+        where: { id: jobId },
+        data: { status: "IN_PROGRESS" },
+      });
 
       // --- Find or Create StoryAnalysis Logic ---
       let storyAnalysisId: string;
 
       if (jobData.storyAnalysis) {
         storyAnalysisId = jobData.storyAnalysis.id;
-        console.log(
-          `[JOB ${jobId}] Found existing StoryAnalysis: ${storyAnalysisId}. Clearing old results...`,
+        log(
+          jobId,
+          `Found existing StoryAnalysis: ${storyAnalysisId}. Clearing old results...`,
         );
         await prisma.chapterAnalysis.deleteMany({
           where: { storyAnalysisId: storyAnalysisId },
@@ -113,18 +130,16 @@ const worker = new Worker(
           },
         });
         storyAnalysisId = newStoryAnalysis.id;
-        console.log(
-          `[JOB ${jobId}] Created new StoryAnalysis: ${storyAnalysisId}`,
-        );
+        log(jobId, `Created new StoryAnalysis: ${storyAnalysisId}`);
       }
 
       // This line will now work correctly
       const { chapters } = jobData.storyData;
 
       // 3. Run the analysis based on the job method
-      if (jobData.method === "INDIVIDUAL") {
+      if (jobData.method === "individual") {
         await runIndividualAnalysis(chapters, storyAnalysisId, jobId);
-      } else if (jobData.method === "CONTEXTUAL") {
+      } else if (jobData.method === "contextual") {
         await runContextualAnalysis(chapters, storyAnalysisId, jobId);
       } else {
         throw new Error(`Invalid analysis method: ${jobData.method}`);
@@ -138,9 +153,9 @@ const worker = new Worker(
         data: { status: "COMPLETED" },
       });
 
-      console.log(`[JOB ${jobId}] Successfully completed.`);
+      log(jobId, "Successfully completed.");
     } catch (error) {
-      console.error(`[JOB ${jobId}] FAILED:`, error);
+      log(jobId, `FAILED: ${error}`);
       // 5. Mark as FAILED (this logic is correct)
       if (jobId) {
         await prisma.analysisJob.update({
@@ -152,6 +167,7 @@ const worker = new Worker(
   },
   {
     connection: redisConnection,
+    concurrency: 10,
   },
 );
 

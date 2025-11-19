@@ -1,10 +1,10 @@
 'use client';
 
 import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
-import { ContextualStoryAnalysis } from '@story-generation/types';
+import { ContextualAnalysisJobData } from '@story-generation/types';
 
 type ContextualAnalysisViewProps = {
-  data: ContextualStoryAnalysis;
+  data: ContextualAnalysisJobData;
   openChapters: Record<string, boolean>;
   onToggle: (key: string) => void;
 };
@@ -17,7 +17,8 @@ export function ContextualAnalysisView({
   openChapters,
   onToggle,
 }: ContextualAnalysisViewProps) {
-  const sortedChapters = [...data].sort(
+  console.log(data)
+  const sortedChapters = [...data.storyAnalysis.chapterAnalyses].sort(
     (a, b) => a.number - b.number
   );
   return (
@@ -39,7 +40,7 @@ export function ContextualAnalysisView({
                 Chapter {chapter.number}
               </span>
               <span className="text-lg font-semibold text-blue-700">
-                (Score: {chapter.score})
+                (Score: {chapter.score.value})
               </span>
             </div>
             {openChapters[key] ? <FaChevronDown /> : <FaChevronRight />}
@@ -52,7 +53,7 @@ export function ContextualAnalysisView({
                 </h3>
                 <pre className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 overflow-x-auto max-h-96 shadow-inner border border-gray-300">
                   <code>
-                    {JSON.stringify(chapter.analysisResults.masterStoryDocument, null, 2)}
+                    {JSON.stringify(chapter.analysis, null, 2)}
                   </code>
                 </pre>
               </div>
@@ -61,7 +62,7 @@ export function ContextualAnalysisView({
                   Score Rationale
                 </h3>
                 <p className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 shadow-inner border border-gray-300">
-                  {chapter.scoreRationale}
+                  {chapter.score.rationale}
                 </p>
               </div>
             </div>

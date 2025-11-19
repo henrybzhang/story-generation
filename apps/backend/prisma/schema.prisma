@@ -54,13 +54,24 @@ model ChapterAnalysis {
   chapterData ChapterData @relation(fields: [chapterDataId], references: [id], onDelete: Cascade)
   chapterDataId String
 
-  analysisResults Json?
+  analysis Json?
 
-  score Int
-  scoreRationale String
+  score Score?
 
   storyAnalysis StoryAnalysis @relation(fields: [storyAnalysisId], references: [id], onDelete: Cascade)
   storyAnalysisId String
+}
+
+model Score {
+  id        String @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  value Int
+  rationale String
+
+  chapterAnalysis   ChapterAnalysis @relation(fields: [chapterAnalysisId], references: [id], onDelete: Cascade)
+  chapterAnalysisId String          @unique
 }
 
 model StoryData {
