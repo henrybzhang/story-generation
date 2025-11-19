@@ -1,11 +1,8 @@
 import {
-  type ChapterOutline,
-  type ContextualChapterAnalysisData,
-  type ContextualChapterPartialAnalysis,
-  contextualAnalysisSchema,
-  type IndividualChapterAnalysis,
-  type IndividualChapterAnalysisData,
-  individualAnalysisSchema,
+  type ChapterSummary,
+  ChapterSummarySchema,
+  type DirectChapterAnalysisData,
+  type IndirectChapterAnalysisData,
   type MasterStoryDocument,
   MasterStoryDocumentSchema,
   type Score,
@@ -14,17 +11,14 @@ import {
 import type { Request, Response } from "express";
 import type { AnalysisJob, ChapterData } from "@/generated/prisma/client.js";
 import { prisma } from "@/src/lib/prisma.js";
-import {
-  createContextualAnalysisPrompt,
-  createIndividualAnalysisPrompt,
-  createNextMasterDocFromOutlinePrompt,
-} from "@/src/schemas/directPrompt.js";
-import {
-  scorePrompt,
-  scorePromptWithMasterStoryDocument,
-} from "@/src/schemas/scoreSchema.js";
+import { createNextMasterDocDirectlyPrompt } from "@/src/schemas/directPrompt.js";
+import { judgeMasterDocumentPrompt } from "@/src/schemas/scoreSchema.js";
 import { createLangChainClient } from "@/src/services/langchainService.js";
 import { analysisQueue } from "../lib/queue.js";
+import {
+  createIndirectAnalysisPrompt,
+  createNextMasterDocFromChapterSummaryPrompt,
+} from "../schemas/indirectPrompt.js";
 
 const langChainClient = createLangChainClient();
 
@@ -57,24 +51,16 @@ const processAnalysisJob = async (
 };
 
 /**
- * Helper function to calculate the score for a given chapter.
- * This remains unchanged as it already operates on a single chapter.
+ * Helper function to judge a master document.
  */
-const calculateScore = async (
+const judgeNewMasterDocument = async (
   chapterData: ChapterData,
-  chapterOutline: ChapterOutline,
-  masterStoryDocument?: MasterStoryDocument,
+  masterStoryDocument: MasterStoryDocument,
 ): Promise<Score> => {
-  let prompt: string;
-  if (masterStoryDocument) {
-    prompt = scorePromptWithMasterStoryDocument(
-      chapterData.content,
-      chapterOutline,
-      masterStoryDocument,
-    );
-  } else {
-    prompt = scorePrompt(chapterData.content, chapterOutline);
-  }
+  const prompt = judgeMasterDocumentPrompt(
+    chapterData.content,
+    masterStoryDocument,
+  );
 
   const response = await langChainClient
     .withStructuredOutput(scoreSchema)
@@ -83,90 +69,75 @@ const calculateScore = async (
   return response;
 };
 
-/**
- * Analyzes a single chapter without context.
- * This logic is extracted from the old `analyzeIndividually` loop.
- */
-const analyzeChapterIndividually = async (
+const analyzeChapterIndirectly = async (
   chapterData: ChapterData,
-): Promise<IndividualChapterAnalysisData> => {
+  masterStoryDocument?: MasterStoryDocument,
+): Promise<IndirectChapterAnalysisData> => {
   try {
-    const prompt = createIndividualAnalysisPrompt(chapterData);
-
-    // 1. Get the Individual analysis
-    const analysis: IndividualChapterAnalysis = await langChainClient
-      .withStructuredOutput(individualAnalysisSchema)
+    const prompt = createIndirectAnalysisPrompt(
+      chapterData,
+      masterStoryDocument,
+    );
+    const chapterSummary: ChapterSummary = await langChainClient
+      .withStructuredOutput(ChapterSummarySchema)
       .invoke(prompt);
 
-    // 2. Get the score
-    const score = await calculateScore(chapterData, analysis.chapterOutline);
+    const masterDocPrompt = await createNextMasterDocFromChapterSummaryPrompt(
+      chapterSummary,
+      masterStoryDocument,
+    );
 
-    // 3. Combine and return
+    const newMasterDocument = await langChainClient
+      .withStructuredOutput(MasterStoryDocumentSchema)
+      .invoke(masterDocPrompt);
+
+    const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
+
     return {
-      analysis,
+      analysis: {
+        masterStoryDocument: newMasterDocument,
+        chapterSummary: chapterSummary,
+      },
       number: chapterData.number,
       score,
     };
   } catch (error) {
-    console.error("Error in analyzeChapterIndividually:", error);
+    console.error("Error in analyzeChapterIndirectly:", error);
     throw new Error(
-      `Failed to process chapter individually: ${
+      `Failed to analyze chapter indirectly: ${
         error instanceof Error ? error.message : "Unknown error"
       }`,
     );
   }
 };
 
-/**
- * Analyzes a single chapter with context from the previous master document.
- * This logic is extracted from the old `analyzeWithContext` loop.
- *
- * IMPORTANT: This function now returns the *new* masterStoryDocument
- * alongside the score, so the client can use it for the *next* chapter.
- */
-const analyzeChapterWithContext = async (
+const analyzeChapterDirectly = async (
   chapterData: ChapterData,
   masterStoryDocument?: MasterStoryDocument,
-): Promise<ContextualChapterAnalysisData> => {
+): Promise<DirectChapterAnalysisData> => {
   try {
-    // --- Call 1: Contextual Analysis (Blocking) ---
-    const prompt = createContextualAnalysisPrompt(
+    const masterDocPrompt = createNextMasterDocDirectlyPrompt(
       chapterData,
       masterStoryDocument,
     );
-    const response: ContextualChapterPartialAnalysis = await langChainClient
-      .withStructuredOutput(contextualAnalysisSchema)
-      .invoke(prompt);
 
-    // --- Prepare Parallel Calls ---
-    const masterDocPrompt = await createNextMasterDocFromOutlinePrompt(
-      response.chapterOutline,
-      masterStoryDocument,
-    );
-
-    const scorePromise = calculateScore(chapterData, response.chapterOutline);
-    const masterDocPromise = langChainClient
+    const newMasterDocument = await langChainClient
       .withStructuredOutput(MasterStoryDocumentSchema)
       .invoke(masterDocPrompt);
 
-    // --- Calls 2 & 3: Run in Parallel ---
-    const [score, newMasterDocument] = await Promise.all([
-      scorePromise,
-      masterDocPromise,
-    ]);
+    const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
 
-    // --- Return Results ---
-    // The client will receive this and must send `newMasterDocument`
-    // with the *next* chapter's request.
     return {
-      analysis: newMasterDocument,
+      analysis: {
+        masterStoryDocument: newMasterDocument,
+      },
       number: chapterData.number,
       score,
     };
   } catch (error) {
-    console.error("Error in analyzeChapterWithContext:", error);
+    console.error("Error in analyzeChapterDirectly:", error);
     throw new Error(
-      `Failed to process chapter with context: ${
+      `Failed to analyze chapter directly: ${
         error instanceof Error ? error.message : "Unknown error"
       }`,
     );
@@ -190,8 +161,7 @@ const analyzeLink = async (req: Request, res: Response) => {
 export {
   analyzeFiles,
   analyzeLink,
-  // Exporting the new single-chapter helpers for potential internal use or testing
-  analyzeChapterIndividually,
-  analyzeChapterWithContext,
+  analyzeChapterIndirectly,
+  analyzeChapterDirectly,
   processAnalysisJob,
 };

@@ -1,5 +1,67 @@
 import z from "zod";
 
+export const ChapterSummarySchema = z.object({
+  // NARRATIVE & PLOT
+  title: z.string(),
+  summary: z.string().describe("Detailed summary of the plot action."),
+  timeElapsed: z.string().describe("Time passed since last chapter."),
+
+  majorEvents: z.array(
+    z.object({
+      description: z.string(),
+      consequence: z
+        .string()
+        .describe(
+          "Does this change a relationship, add an item, or reveal a secret?",
+        ),
+      importance: z.enum(["Low", "Medium", "High", "Critical"]),
+    }),
+  ),
+
+  // WORLD & LORE
+  newLore: z
+    .array(
+      z.object({
+        term: z.string(),
+        category: z.string(),
+        definition: z.string(),
+        plotRelevance: z.string(),
+      }),
+    )
+    .describe("New magic rules, locations, or history revealed."),
+
+  // CHARACTER & PSYCHOLOGY UPDATES
+  characterUpdates: z.array(
+    z.object({
+      name: z.string(),
+      emotionalState: z.string().describe("Current mood at end of chapter."),
+      newInternalConflict: z
+        .string()
+        .optional()
+        .describe("If a new inner struggle emerged."),
+      developmentNote: z
+        .string()
+        .describe("How they changed/grew in this chapter."),
+    }),
+  ),
+
+  // EROTIC ANALYSIS (Lexicon Applied Here)
+  eroticScenes: z.array(
+    z.object({
+      participants: z.array(z.string()),
+      lexiconTags: z.array(z.string()).describe("Tags from the Kink Lexicon."),
+      powerDynamicsDesc: z
+        .string()
+        .describe("Who held power and how it shifted."),
+      eroticRealism: z
+        .string()
+        .describe(
+          "Notes on the emotional/awkward/realistic aspects of the encounter.",
+        ),
+    }),
+  ),
+});
+
 // ---------------------------------------------------------
 // 2. WORLD BUILDING & MAGIC (The "Wiki")
 // ---------------------------------------------------------
@@ -77,68 +139,6 @@ export const NarrativeLogSchema = z.object({
       emotionalResult: z
         .string()
         .describe("How did this impact their relationship?"),
-    }),
-  ),
-});
-
-export const ChapterAnalysisSchema = z.object({
-  // NARRATIVE & PLOT
-  title: z.string(),
-  summary: z.string().describe("Detailed summary of the plot action."),
-  timeElapsed: z.string().describe("Time passed since last chapter."),
-
-  majorEvents: z.array(
-    z.object({
-      description: z.string(),
-      consequence: z
-        .string()
-        .describe(
-          "Does this change a relationship, add an item, or reveal a secret?",
-        ),
-      importance: z.enum(["Low", "Medium", "High", "Critical"]),
-    }),
-  ),
-
-  // WORLD & LORE
-  newLore: z
-    .array(
-      z.object({
-        term: z.string(),
-        category: z.string(),
-        definition: z.string(),
-        plotRelevance: z.string(),
-      }),
-    )
-    .describe("New magic rules, locations, or history revealed."),
-
-  // CHARACTER & PSYCHOLOGY UPDATES
-  characterUpdates: z.array(
-    z.object({
-      name: z.string(),
-      emotionalState: z.string().describe("Current mood at end of chapter."),
-      newInternalConflict: z
-        .string()
-        .optional()
-        .describe("If a new inner struggle emerged."),
-      developmentNote: z
-        .string()
-        .describe("How they changed/grew in this chapter."),
-    }),
-  ),
-
-  // EROTIC ANALYSIS (Lexicon Applied Here)
-  eroticScenes: z.array(
-    z.object({
-      participants: z.array(z.string()),
-      lexiconTags: z.array(z.string()).describe("Tags from the Kink Lexicon."),
-      powerDynamicsDesc: z
-        .string()
-        .describe("Who held power and how it shifted."),
-      eroticRealism: z
-        .string()
-        .describe(
-          "Notes on the emotional/awkward/realistic aspects of the encounter.",
-        ),
     }),
   ),
 });
@@ -255,29 +255,34 @@ export const MasterStoryDocumentSchema = z.object({
     .describe("Chronological log of every chapter."),
 });
 
-export const individualAnalysisSchema = z.object({
-  chapterOutline: NarrativeLogSchema.describe("The chapter outline."),
-  characters: z
-    .array(CharacterAnalysisSchema)
-    .describe(
-      "An array of in-depth analyses for each major character in the story.",
-    ),
+export const directAnalysisSchema = z.object({
+  masterStoryDocument: MasterStoryDocumentSchema.describe(
+    "The Master Story Document for the latest chapter.",
+  ),
 });
 
-export const contextualAnalysisSchema = z.object({
-  chapterOutline: NarrativeLogSchema.describe("The chapter outline."),
+export const indirectAnalysisSchema = z.object({
+  chapterSummary: ChapterSummarySchema,
+  masterStoryDocument: MasterStoryDocumentSchema.describe(
+    "The Master Story Document for the latest chapter.",
+  ),
 });
 
 export const scoreSchema = z.object({
-  value: z.number().describe("The score out of 100."),
+  value: z
+    .number()
+    .describe(
+      "The score out of 100 that describes how well the analysis reflected the story.",
+    ),
   rationale: z.string().describe("The rationale for the score."),
 });
 
-export type IndividualChapterAnalysis = z.infer<
-  typeof individualAnalysisSchema
+export type ChapterSummary = z.infer<typeof ChapterSummarySchema>;
+export type FinishedDirectChapterAnalysis = z.infer<
+  typeof directAnalysisSchema
 >;
-export type ContextualChapterPartialAnalysis = z.infer<
-  typeof contextualAnalysisSchema
+export type FinishedIndirectChapterAnalysis = z.infer<
+  typeof indirectAnalysisSchema
 >;
 export type MasterStoryDocument = z.infer<typeof MasterStoryDocumentSchema>;
 export type CharacterSheet = z.infer<typeof CharacterAnalysisSchema>;

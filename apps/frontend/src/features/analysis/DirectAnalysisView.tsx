@@ -1,22 +1,22 @@
 'use client';
 
 import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
-import { ContextualAnalysisJobData } from '@story-generation/types';
+import { DirectAnalysisJobData } from '@story-generation/types';
 
-type ContextualAnalysisViewProps = {
-  data: ContextualAnalysisJobData;
+type DirectAnalysisViewProps = {
+  data: DirectAnalysisJobData;
   openChapters: Record<string, boolean>;
   onToggle: (key: string) => void;
 };
 
 /**
- * Renders the view for Contextual (Master Document) analysis
+ * Renders the view for Direct (Master Document) analysis
  */
-export function ContextualAnalysisView({
+export function DirectAnalysisView({
   data,
   openChapters,
   onToggle,
-}: ContextualAnalysisViewProps) {
+}: DirectAnalysisViewProps) {
   console.log(data)
   const sortedChapters = [...data.storyAnalysis.chapterAnalyses].sort(
     (a, b) => a.number - b.number
@@ -53,7 +53,7 @@ export function ContextualAnalysisView({
                 </h3>
                 <pre className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 overflow-x-auto max-h-96 shadow-inner border border-gray-300">
                   <code>
-                    {JSON.stringify(chapter.analysis, null, 2)}
+                    {JSON.stringify(chapter.analysis.masterStoryDocument, null, 2)}
                   </code>
                 </pre>
               </div>

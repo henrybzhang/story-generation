@@ -1,10 +1,10 @@
 'use client';
 
 import { FaChevronDown, FaChevronRight } from 'react-icons/fa';
-import { IndividualAnalysisJobData } from '@story-generation/types';
+import { IndirectAnalysisJobData } from '@story-generation/types';
 
-type IndividualAnalysisViewProps = {
-  data: IndividualAnalysisJobData;
+type IndirectAnalysisViewProps = {
+  data: IndirectAnalysisJobData;
   openChapters: Record<string, boolean>;
   onToggle: (key: string) => void;
 };
@@ -12,11 +12,11 @@ type IndividualAnalysisViewProps = {
 /**
  * Renders the view for Individual analysis
  */
-export function IndividualAnalysisView({
+export function IndirectAnalysisView({
   data,
   openChapters,
   onToggle,
-}: IndividualAnalysisViewProps) {
+}: IndirectAnalysisViewProps) {
   const sortedChapters = data.storyAnalysis.chapterAnalyses.sort(
     (a, b) => a.number - b.number
   );
@@ -49,21 +49,21 @@ export function IndividualAnalysisView({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-lg font-semibold mb-3 text-blue-700">
-                    Outline
+                    Chapter Summary
                   </h3>
                   <pre className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 overflow-x-auto max-h-96 shadow-inner border border-gray-300">
                     <code>
-                      {JSON.stringify(chapter.analysis.chapterOutline, null, 2)}
+                      {JSON.stringify(chapter.analysis.chapterSummary, null, 2)}
                     </code>
                   </pre>
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold mb-3 text-purple-700">
-                    Characters
+                    Master Story Document
                   </h3>
                   <pre className="bg-gray-50 p-4 rounded-lg text-sm text-gray-800 overflow-x-auto max-h-96 shadow-inner border border-gray-300">
                     <code>
-                      {JSON.stringify(chapter.analysis.characters, null, 2)}
+                      {JSON.stringify(chapter.analysis.masterStoryDocument, null, 2)}
                     </code>
                   </pre>
                 </div>

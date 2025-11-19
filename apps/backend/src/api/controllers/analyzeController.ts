@@ -1,4 +1,4 @@
-import type { AnalysisRequest } from "@story-generation/types";
+import { AnalysisMethod, type AnalysisRequest } from "@story-generation/types";
 import type { Request, Response } from "express";
 import { prisma } from "@/src/lib/prisma.js";
 import { AppError } from "@/src/middleware/AppError.js";
@@ -8,8 +8,8 @@ export const startAnalysisJobs = async (req: Request, res: Response) => {
   const { storyId } = req.body as AnalysisRequest;
   try {
     const jobs = await Promise.allSettled([
-      processAnalysisJob(storyId, "contextual"),
-      processAnalysisJob(storyId, "individual"),
+      processAnalysisJob(storyId, AnalysisMethod.INDIRECT),
+      processAnalysisJob(storyId, AnalysisMethod.DIRECT),
     ]);
 
     // 3. Return 202 Accepted immediately

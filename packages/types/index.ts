@@ -1,15 +1,17 @@
 import z from "zod";
 import type {
-  IndividualChapterAnalysis,
-  MasterStoryDocument,
+  FinishedDirectChapterAnalysis,
+  FinishedIndirectChapterAnalysis,
   Score,
-} from "./analysisTypes.js";
+} from "./analysisTypes";
 
-export * from "./analysisTypes.js"; // This is still fine
+export * from "./analysisTypes";
 
 // --- 1. Zod Schemas as Single Source of Truth ---
-export const AnalysisMethodSchema = z.enum(["individual", "contextual"]);
-export type AnalysisMethod = z.infer<typeof AnalysisMethodSchema>;
+export enum AnalysisMethod {
+  DIRECT = "direct",
+  INDIRECT = "indirect",
+}
 
 export const AnalysisJobStatusSchema = z.enum([
   "PENDING",
@@ -45,17 +47,17 @@ export type AnalysisJobSimpleData = {
 
 // --- 3. Discriminated Union for Analysis Data ---
 
-// Describes the *full row* of data for an analyzed chapter
-export type IndividualChapterAnalysisData = {
+export type BaseAnalysisData = {
   number: number;
-  analysis: IndividualChapterAnalysis;
   score: Score;
 };
 
-export type ContextualChapterAnalysisData = {
-  number: number;
-  analysis: MasterStoryDocument;
-  score: Score;
+export type IndirectChapterAnalysisData = BaseAnalysisData & {
+  analysis: FinishedIndirectChapterAnalysis;
+};
+
+export type DirectChapterAnalysisData = BaseAnalysisData & {
+  analysis: FinishedDirectChapterAnalysis;
 };
 
 // Base type for a job
@@ -64,27 +66,24 @@ type BaseAnalysisJobData = {
   status: AnalysisJobStatus;
 };
 
-// Specific job types
-export type IndividualAnalysisJobData = BaseAnalysisJobData & {
-  method: "individual";
+export type IndirectAnalysisJobData = BaseAnalysisJobData & {
+  method: AnalysisMethod.INDIRECT;
   storyAnalysis: {
     id: string;
-    chapterAnalyses: IndividualChapterAnalysisData[];
+    chapterAnalyses: IndirectChapterAnalysisData[];
   };
 };
 
-export type ContextualAnalysisJobData = BaseAnalysisJobData & {
-  method: "contextual";
+export type DirectAnalysisJobData = BaseAnalysisJobData & {
+  method: AnalysisMethod.DIRECT;
   storyAnalysis: {
     id: string;
-    chapterAnalyses: ContextualChapterAnalysisData[];
+    chapterAnalyses: DirectChapterAnalysisData[];
   };
 };
 
 // Final discriminated union type
-export type AnalysisJobData =
-  | IndividualAnalysisJobData
-  | ContextualAnalysisJobData;
+export type AnalysisJobData = IndirectAnalysisJobData | DirectAnalysisJobData;
 
 // --- 4. Generic Helper Types ---
 export type AnalysisResult<T> =

@@ -1,61 +1,31 @@
 import "dotenv/config";
 
-import type { MasterStoryDocument } from "@story-generation/types";
+import {
+  AnalysisMethod,
+  type MasterStoryDocument,
+} from "@story-generation/types";
 import { Worker } from "bullmq";
 import type { ChapterData } from "@/generated/prisma/client.js";
 import { prisma } from "./lib/prisma.js";
 import { redisConnection } from "./lib/redisConnection.js";
 import {
-  analyzeChapterIndividually,
-  analyzeChapterWithContext,
+  analyzeChapterDirectly,
+  analyzeChapterIndirectly,
 } from "./services/analysisService.js";
 
 const log = (jobId: string, message: string) =>
   console.log(`[${new Date().toISOString()}] [JOB ${jobId}] ${message}`);
 
-const runIndividualAnalysis = async (
+const runIndirectAnalysis = async (
   chapters: ChapterData[],
   storyAnalysisId: string,
   jobId: string,
 ) => {
-  log(jobId, "Starting individual track...");
-  const individualPromises = chapters.map((chapter) =>
-    analyzeChapterIndividually(chapter)
-      .then((result) =>
-        prisma.chapterAnalysis.create({
-          data: {
-            analysis: result.analysis,
-            chapterData: { connect: { id: chapter.id } },
-            storyAnalysis: { connect: { id: storyAnalysisId } },
-            score: {
-              create: {
-                value: result.score.value,
-                rationale: result.score.rationale,
-              },
-            },
-          },
-        }),
-      )
-      .then((createdAnalysis) => {
-        log(jobId, `Finished chapter ${chapter.number || chapter.id}.`);
-        return createdAnalysis;
-      }),
-  );
-  await Promise.all(individualPromises);
-  log(jobId, "Finished INDIVIDUAL track.");
-};
-
-// --- 3. Track B: Run all Contextual Analyses Sequentially ---
-const runContextualAnalysis = async (
-  chapters: ChapterData[],
-  storyAnalysisId: string,
-  jobId: string,
-) => {
-  log(jobId, "Starting Contextual track...");
+  log(jobId, "Starting Indirect track...");
   let currentMasterDoc: MasterStoryDocument | undefined;
 
   for (const chapter of chapters) {
-    const result = await analyzeChapterWithContext(chapter, currentMasterDoc);
+    const result = await analyzeChapterIndirectly(chapter, currentMasterDoc);
 
     await prisma.chapterAnalysis.create({
       data: {
@@ -72,10 +42,42 @@ const runContextualAnalysis = async (
     });
 
     // Pass the new master doc to the next iteration
-    currentMasterDoc = result.analysis;
-    log(jobId, `CONTEXTUAL analysis for chapter ${chapter.number} complete.`);
+    currentMasterDoc = result.analysis.masterStoryDocument;
+    log(jobId, `INDIRECT analysis for chapter ${chapter.number} complete.`);
   }
-  log(jobId, "Finished CONTEXTUAL track.");
+  log(jobId, "Finished INDIRECT track.");
+};
+
+const runDirectAnalysis = async (
+  chapters: ChapterData[],
+  storyAnalysisId: string,
+  jobId: string,
+) => {
+  log(jobId, "Starting Direct track...");
+  let currentMasterDoc: MasterStoryDocument | undefined;
+
+  for (const chapter of chapters) {
+    const result = await analyzeChapterDirectly(chapter, currentMasterDoc);
+
+    await prisma.chapterAnalysis.create({
+      data: {
+        analysis: result.analysis,
+        chapterData: { connect: { id: chapter.id } },
+        storyAnalysis: { connect: { id: storyAnalysisId } },
+        score: {
+          create: {
+            value: result.score.value,
+            rationale: result.score.rationale,
+          },
+        },
+      },
+    });
+
+    // Pass the new master doc to the next iteration
+    currentMasterDoc = result.analysis.masterStoryDocument;
+    log(jobId, `DIRECT analysis for chapter ${chapter.number} complete.`);
+  }
+  log(jobId, "Finished DIRECT track.");
 };
 
 // --- 4. The Main Worker ---
@@ -137,10 +139,10 @@ const worker = new Worker<{ jobId: string }>(
       const { chapters } = jobData.storyData;
 
       // 3. Run the analysis based on the job method
-      if (jobData.method === "individual") {
-        await runIndividualAnalysis(chapters, storyAnalysisId, jobId);
-      } else if (jobData.method === "contextual") {
-        await runContextualAnalysis(chapters, storyAnalysisId, jobId);
+      if (jobData.method === AnalysisMethod.DIRECT) {
+        await runDirectAnalysis(chapters, storyAnalysisId, jobId);
+      } else if (jobData.method === AnalysisMethod.INDIRECT) {
+        await runIndirectAnalysis(chapters, storyAnalysisId, jobId);
       } else {
         throw new Error(`Invalid analysis method: ${jobData.method}`);
       }

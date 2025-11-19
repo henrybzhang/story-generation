@@ -1,4 +1,4 @@
-import { AnalysisJobData, } from '@story-generation/types';
+import { AnalysisJobData, AnalysisMethod, } from '@story-generation/types';
 
 /**
  * Builds the master prompt string from the analysis data.
@@ -8,10 +8,10 @@ export function buildMasterPrompt(
 ): string {
   let context = `[SYSTEM]\nYou are a creative story writer. Below is the full context for a story-in-progress. Your task is to continue the story based on the user's direction.\n\n`;
 
-  if (analysis.method === 'individual') {
+  if (analysis.method === AnalysisMethod.INDIRECT) {
     // 1. Assert the type of storyAnalysis based on the method
     const storyAnalysis = analysis.storyAnalysis;
-    context += `[STORY CONTEXT SO FAR (Individual)]\n---\n`;
+    context += `[STORY CONTEXT SO FAR (Indirect)]\n---\n`;
 
     // 2. Use the correctly-typed variable
     const sortedChapters = [...storyAnalysis.chapterAnalyses].sort(
@@ -22,18 +22,18 @@ export function buildMasterPrompt(
       // 3. No 'as' needed here, chapter.analysisResults is already the correct type
       const chapterAnalysis = chapter.analysis;
       context += `OUTLINE:\n${JSON.stringify(
-        chapterAnalysis.chapterOutline,
+        chapterAnalysis.chapterSummary,
         null,
         2,
       )}\n\n`;
       context += `CHARACTERS:\n${JSON.stringify(
-        chapterAnalysis.characters,
+        chapterAnalysis.masterStoryDocument,
         null,
         2,
       )}\n\n`;
       context += `---\n`;
     }
-  } else if (analysis.method === 'contextual') {
+  } else if (analysis.method === AnalysisMethod.DIRECT) {
     // 1. Assert the type of storyAnalysis based on the method
     const storyAnalysis = analysis.storyAnalysis;
 

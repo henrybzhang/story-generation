@@ -22,20 +22,20 @@ export function MethodSwitcher({
   return (
     <div className="w-full max-w-md mx-auto p-1 bg-gray-200 rounded-lg flex space-x-1 mb-8">
       <button
-        onClick={() => onMethodChange('individual')}
+        onClick={() => onMethodChange(AnalysisMethod.DIRECT)}
         className={`${baseStyle} ${
-          activeMethod === 'individual' ? activeStyle : inactiveStyle
+          activeMethod === AnalysisMethod.DIRECT ? activeStyle : inactiveStyle
         }`}
       >
-        Individual
+        Direct
       </button>
       <button
-        onClick={() => onMethodChange('contextual')}
+        onClick={() => onMethodChange(AnalysisMethod.INDIRECT)}
         className={`${baseStyle} ${
-          activeMethod === 'contextual' ? activeStyle : inactiveStyle
+          activeMethod === AnalysisMethod.INDIRECT ? activeStyle : inactiveStyle
         }`}
       >
-        Master Document
+        Indirect
       </button>
     </div>
   );
