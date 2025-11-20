@@ -147,8 +147,6 @@ const worker = new Worker<{ jobId: string }>(
         throw new Error(`Invalid analysis method: ${jobData.method}`);
       }
 
-      // ... (rest of your worker logic: mark as COMPLETED or FAILED) ...
-
       // 4. Mark as COMPLETED
       await prisma.analysisJob.update({
         where: { id: jobId },
@@ -169,7 +167,7 @@ const worker = new Worker<{ jobId: string }>(
   },
   {
     connection: redisConnection,
-    concurrency: 10,
+    concurrency: 3,
   },
 );
 

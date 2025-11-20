@@ -11,6 +11,7 @@ import { IndirectAnalysisView } from '@/features/analysis/IndirectAnalysisView';
 import { DirectAnalysisView } from '@/features/analysis/DirectAnalysisView';
 import { buildMasterPrompt } from '@/features/analysis/utils/buildMasterPrompt';
 import { AnalysisMethod } from '@story-generation/types';
+import { deleteAnalysisJobs } from '@/lib/api';
 
 /**
  * Main content of the analysis page.
@@ -93,6 +94,13 @@ function AnalysisPageContent() {
     );
   }
 
+  // Handler for deleting jobs
+  const handleDeleteJobs = async (jobIds: string[]) => {
+    await deleteAnalysisJobs(jobIds);
+    // Invalidate and refetch the jobs list
+    await queryClient.invalidateQueries({ queryKey: ['jobs', storyId] });
+  };
+
   // 3. Show job selector if no job is selected
   if (!selectedJobId) {
     return (
@@ -100,6 +108,7 @@ function AnalysisPageContent() {
         jobs={jobList || []}
         onJobSelect={setSelectedJobId}
         selectedJobId={selectedJobId}
+        onDeleteJobs={handleDeleteJobs}
       />
     );
   }

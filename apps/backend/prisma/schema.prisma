@@ -28,6 +28,8 @@ model AnalysisJob {
   status    AnalysisJobStatus @default(PENDING)
 
   method    String
+  modelName String
+  promptVersion String
 
   storyData StoryData @relation(fields: [storyDataId], references: [id], onDelete: Cascade)
   storyDataId String

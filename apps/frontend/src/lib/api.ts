@@ -80,3 +80,30 @@ export const fetchJobStatus = async (jobId: string): Promise<JobStatus> => {
 
   return response.json();
 };
+
+/**
+ * Deletes an analysis job by its ID.
+ * @param jobId The ID of the job to delete
+ * @returns {Promise<void>}
+ */
+export const deleteAnalysisJob = async (jobId: string): Promise<void> => {
+  const response = await fetch(`${BASE_URL}/analyze/${jobId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(
+      errData.error || `Error ${response.status}: ${response.statusText}`
+    );
+  }
+};
+
+/**
+ * Deletes multiple analysis jobs by their IDs.
+ * @param jobIds Array of job IDs to delete
+ * @returns {Promise<void>}
+ */
+export const deleteAnalysisJobs = async (jobIds: string[]): Promise<void> => {
+  await Promise.all(jobIds.map(jobId => deleteAnalysisJob(jobId)));
+};

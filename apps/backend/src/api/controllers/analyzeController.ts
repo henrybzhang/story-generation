@@ -9,7 +9,7 @@ export const startAnalysisJobs = async (req: Request, res: Response) => {
   try {
     const jobs = await Promise.allSettled([
       processAnalysisJob(storyId, AnalysisMethod.INDIRECT),
-      processAnalysisJob(storyId, AnalysisMethod.DIRECT),
+      // processAnalysisJob(storyId, AnalysisMethod.DIRECT),
     ]);
 
     // 3. Return 202 Accepted immediately

@@ -11,16 +11,46 @@ import {
 import type { Request, Response } from "express";
 import type { AnalysisJob, ChapterData } from "@/generated/prisma/client.js";
 import { prisma } from "@/src/lib/prisma.js";
-import { createNextMasterDocDirectlyPrompt } from "@/src/schemas/directPrompt.js";
-import { judgeMasterDocumentPrompt } from "@/src/schemas/scoreSchema.js";
+import { createNextMasterDocDirectlyPrompt } from "@/src/prompts/directPrompt.js";
+import { judgeMasterDocumentPrompt } from "@/src/prompts/scoreSchema.js";
 import { createLangChainClient } from "@/src/services/langchainService.js";
 import { analysisQueue } from "../lib/queue.js";
 import {
   createIndirectAnalysisPrompt,
   updateMasterDocFromAnalysisPrompt,
-} from "../schemas/indirectPrompt.js";
+} from "../prompts/indirectPrompt.js";
 
 const langChainClient = createLangChainClient();
+
+/**
+ * Retry helper with exponential backoff
+ */
+const retryWithBackoff = async <T>(
+  fn: () => Promise<T>,
+  maxRetries = 3,
+  initialDelay = 1000,
+): Promise<T> => {
+  let lastError: Error;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (attempt < maxRetries) {
+        const delay = initialDelay * 2 ** attempt;
+        console.warn(
+          `Attempt ${attempt + 1} failed, retrying in ${delay}ms...`,
+          lastError.message,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError!;
+};
 
 /**
  * Creates an AnalysisJob record.
@@ -75,18 +105,22 @@ const analyzeChapterIndirectly = async (
 ): Promise<IndirectChapterAnalysisData> => {
   try {
     const prompt = createIndirectAnalysisPrompt(chapterData);
-    const chapterSummary: ChapterSummary = await langChainClient
-      .withStructuredOutput(ChapterSummarySchema)
-      .invoke(prompt);
+
+    const chapterSummary: ChapterSummary = await retryWithBackoff(() =>
+      langChainClient.withStructuredOutput(ChapterSummarySchema).invoke(prompt),
+    );
 
     const masterDocPrompt = await updateMasterDocFromAnalysisPrompt(
       chapterSummary,
       masterStoryDocument,
     );
 
-    const newMasterDocument = await langChainClient
-      .withStructuredOutput(MasterStoryDocumentSchema)
-      .invoke(masterDocPrompt);
+    const newMasterDocument = await retryWithBackoff(() =>
+      langChainClient
+        .withStructuredOutput(MasterStoryDocumentSchema)
+        .invoke(masterDocPrompt),
+    );
+    // const newMasterDocument = {};
 
     // const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
     const score = {
@@ -122,9 +156,11 @@ const analyzeChapterDirectly = async (
       masterStoryDocument,
     );
 
-    const newMasterDocument = await langChainClient
-      .withStructuredOutput(MasterStoryDocumentSchema)
-      .invoke(masterDocPrompt);
+    const newMasterDocument = await retryWithBackoff(() =>
+      langChainClient
+        .withStructuredOutput(MasterStoryDocumentSchema)
+        .invoke(masterDocPrompt),
+    );
 
     // const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
     const score = {

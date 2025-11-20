@@ -7,7 +7,7 @@ const createLangChainClient = () => {
   }
 
   return new ChatOpenAI({
-    model: "mistralai/mistral-nemo",
+    model: "x-ai/grok-4-fast",
     temperature: 0.8,
     apiKey: process.env.OPENROUTER_API_KEY,
     configuration: {

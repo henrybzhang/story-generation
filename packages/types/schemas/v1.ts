@@ -2,454 +2,6 @@ import z from "zod";
 
 export const CURRENT_PROMPT_VERSION = "1.0.0";
 
-export const ChapterSummarySchema = z.object({
-  // -------------------------
-  // METADATA
-  // -------------------------
-  chapterNumber: z.number(),
-  title: z.string(),
-  wordCount: z.number().optional(),
-  timeElapsed: z.string().describe("Duration of events in this chapter."),
-  setting: z.array(z.string()).describe("All locations that appeared."),
-  primaryPOV: z.array(z.string()).describe("Whose perspective(s) dominated."),
-  timeOfDay: z.string().optional(),
-
-  // -------------------------
-  // NARRATIVE PRESERVATION
-  // -------------------------
-  plotSummary: z
-    .string()
-    .describe(
-      "**COMPREHENSIVE beat-by-beat narrative.** Write 400-600 words minimum. Include: (1) Opening situation, (2) Every decision and action taken, (3) All dialogue exchanges (summarized), (4) Consequences of actions, (5) Ending situation. DO NOT SKIP STEPS. If character A walks from bedroom to kitchen, mention it. If they hesitate before speaking, mention it. Capture the FLOW.",
-    ),
-
-  sceneBreakdown: z
-    .array(
-      z.object({
-        sceneNumber: z.number(),
-        location: z.string(),
-        participants: z.array(z.string()),
-        timeSpan: z.string().optional(),
-        purpose: z
-          .string()
-          .describe(
-            "What this scene accomplished (e.g., 'Character A seduces B', 'Investigation reveals clue', 'Erotic encounter with compulsion').",
-          ),
-        summary: z.string().describe("2-3 sentence summary of scene events."),
-        type: z.enum([
-          "Dialogue",
-          "Action",
-          "Erotic",
-          "Introspection",
-          "Description",
-          "Transition",
-          "Compulsion",
-          "Mixed",
-        ]),
-      }),
-    )
-    .describe(
-      "Break chapter into scenes. Even a 5000-word chapter might have 5-8 scenes. Capture each.",
-    ),
-
-  // -------------------------
-  // VERBATIM PRESERVATION
-  // -------------------------
-  keyQuotes: z
-    .array(
-      z.object({
-        speaker: z.string(),
-        quote: z
-          .string()
-          .describe("EXACT wording from text. Use quotation marks."),
-        context: z.string().describe("What was happening when this was said."),
-        significance: z
-          .enum([
-            "Character Voice",
-            "Plot Information",
-            "Subtext/Manipulation",
-            "Erotic Tension",
-            "World Rule",
-            "Emotional Revelation",
-            "Foreshadowing",
-            "Compulsion Command",
-            "Other",
-          ])
-          .array(),
-      }),
-    )
-    .describe(
-      "Extract 10-20 quotes minimum. Include: (1) Every compulsion command, (2) Character-defining lines, (3) Plot-critical info, (4) Subtext-heavy dialogue, (5) Erotic dialogue. If in doubt, include it.",
-    ),
-
-  sensoryDetails: z
-    .array(
-      z.object({
-        sense: z.enum([
-          "Sight",
-          "Sound",
-          "Touch",
-          "Taste",
-          "Smell",
-          "Proprioception",
-        ]),
-        detail: z
-          .string()
-          .describe(
-            "Exact phrasing from text if possible (e.g., 'the smell of sandalwood and sweat', 'cool silk against heated skin').",
-          ),
-        context: z.string().optional().describe("What scene this appeared in."),
-      }),
-    )
-    .describe(
-      "Extract 8-15 sensory details. Prioritize: (1) Erotic/intimate moments, (2) Setting establishment, (3) Emotional atmosphere. Be specific—avoid generic descriptions.",
-    ),
-
-  narrativeVoice: z
-    .object({
-      excerpts: z
-        .array(z.string())
-        .describe(
-          "3-5 sentences that exemplify the narrator's voice/style. Preserve exact wording.",
-        ),
-      styleNotes: z
-        .string()
-        .describe(
-          "Observations about prose style (e.g., 'Lyrical with long sentences', 'Terse and punchy', 'Heavy internal monologue', 'Sensory-rich').",
-        ),
-    })
-    .optional()
-    .describe("Preserve the writing style for continuation consistency."),
-
-  // -------------------------
-  // WORLD MECHANICS
-  // -------------------------
-  detectedWorldRules: z
-    .array(
-      z.object({
-        rule: z.string(),
-        context: z
-          .string()
-          .describe("Where in the chapter this rule appeared."),
-        type: z.enum([
-          "Magic System",
-          "Technology",
-          "Social Hierarchy",
-          "Biology",
-          "Compulsion Mechanic",
-          "Law",
-          "Economy",
-          "Other",
-        ]),
-        exactPhrasing: z
-          .string()
-          .optional()
-          .describe("If the text explicitly stated the rule, quote it."),
-        isNew: z
-          .boolean()
-          .describe("Is this a rule that hasn't appeared before?"),
-        contradictsExisting: z.boolean().optional(),
-      }),
-    )
-    .describe("Extract every world-building rule mentioned or demonstrated."),
-
-  compulsionInstances: z
-    .array(
-      z.object({
-        controller: z.string(),
-        subject: z.array(z.string()),
-        method: z.string(),
-
-        triggerDescription: z
-          .string()
-          .describe(
-            "Exact description of how compulsion was activated (preserve original phrasing).",
-          ),
-
-        commands: z
-          .array(
-            z.object({
-              verbatimCommand: z
-                .string()
-                .describe(
-                  "EXACT words used if verbal, or precise description if non-verbal.",
-                ),
-              subjectResponse: z
-                .string()
-                .describe("How they reacted/complied."),
-            }),
-          )
-          .optional(),
-
-        subjectExperience: z
-          .array(z.string())
-          .describe(
-            "Verbatim excerpts of subject's internal experience (thoughts, sensations, emotions). Minimum 2-3 quotes.",
-          ),
-
-        sensualMoments: z
-          .array(z.string())
-          .describe(
-            "Specific sensual/erotic details from this compulsion instance. Quote exact phrasing where possible.",
-          ),
-
-        outcome: z.string().describe("What resulted from this compulsion."),
-      }),
-    )
-    .optional()
-    .describe(
-      "Dedicated extraction for mind control/hypnosis/compulsion scenes. Capture the mechanics AND the sensual experience.",
-    ),
-
-  // -------------------------
-  // CHARACTER DATA
-  // -------------------------
-  characterAppearances: z
-    .array(
-      z.object({
-        name: z.string(),
-        role: z
-          .enum(["Major", "Supporting", "Minor", "Mentioned"])
-          .describe("How much screentime they had."),
-
-        actions: z
-          .array(z.string())
-          .describe("What they DID (not interpretation—concrete actions)."),
-
-        emotionalStates: z
-          .array(
-            z.object({
-              state: z.string(),
-              triggeredBy: z.string().optional(),
-            }),
-          )
-          .describe("Track emotional shifts within the chapter."),
-
-        physicalChanges: z
-          .array(z.string())
-          .optional()
-          .describe(
-            "Injuries, exhaustion, appearance changes, arousal states.",
-          ),
-
-        knowledgeGained: z
-          .array(z.string())
-          .optional()
-          .describe("New information this character learned."),
-
-        decisionsPoints: z
-          .array(
-            z.object({
-              decision: z.string(),
-              alternatives: z.array(z.string()).optional(),
-              reasoning: z.string().optional(),
-            }),
-          )
-          .optional()
-          .describe("Moments where character made a choice."),
-      }),
-    )
-    .describe("Per-character extraction. Track everyone who appeared."),
-
-  relationshipMoments: z
-    .array(
-      z.object({
-        characters: z.array(z.string()).length(2),
-        momentType: z.enum([
-          "First Meeting",
-          "Conflict",
-          "Intimacy",
-          "Betrayal",
-          "Alliance",
-          "Revelation",
-          "Compulsion",
-          "Seduction",
-          "Other",
-        ]),
-        description: z.string(),
-        trustImpact: z
-          .enum([
-            "Major Increase",
-            "Increase",
-            "Neutral",
-            "Decrease",
-            "Major Decrease",
-          ])
-          .optional(),
-        lustImpact: z
-          .enum([
-            "Major Increase",
-            "Increase",
-            "Neutral",
-            "Decrease",
-            "Major Decrease",
-          ])
-          .optional(),
-        powerShift: z.string().optional(),
-      }),
-    )
-    .optional()
-    .describe("Key relationship developments between character pairs."),
-
-  // -------------------------
-  // EROTIC CONTENT EXTRACTION
-  // -------------------------
-  eroticScenes: z
-    .array(
-      z.object({
-        sceneNumber: z
-          .number()
-          .describe("Which scene in the breakdown this corresponds to."),
-        participants: z.array(z.string()),
-        observers: z.array(z.string()).optional(),
-
-        kinkTags: z
-          .array(z.string())
-          .describe(
-            "From kink lexicon. Extract ALL applicable tags—be comprehensive.",
-          ),
-
-        progression: z
-          .string()
-          .describe(
-            "Step-by-step description of physical escalation. 200-300 words. Include: (1) Initiation, (2) Each physical action (kissing → touching → penetration, etc.), (3) Positions, (4) Climax, (5) Aftermath. Preserve exact phrasing for key moments.",
-          ),
-
-        verbatimEroticText: z
-          .array(z.string())
-          .describe(
-            "Extract 5-10 exact sentences that capture the erotic writing style. These will help continuation LLM match tone.",
-          ),
-
-        sensualHighlights: z
-          .array(
-            z.object({
-              moment: z.string(),
-              exactPhrasing: z.string().describe("Quote the text directly."),
-              sense: z.enum([
-                "Sight",
-                "Sound",
-                "Touch",
-                "Taste",
-                "Smell",
-                "Emotion",
-                "Thought",
-              ]),
-            }),
-          )
-          .describe(
-            "10-15 specific sensual details with exact wording preserved.",
-          ),
-
-        compulsionPresent: z.boolean(),
-        compulsionDetails: z
-          .string()
-          .optional()
-          .describe("Reference the compulsionInstances entry."),
-
-        powerDynamic: z.string(),
-        initiator: z.string(),
-
-        dialogueDuringScene: z
-          .array(
-            z.object({
-              speaker: z.string(),
-              line: z.string().describe("Verbatim quote."),
-              tone: z.string().optional(),
-            }),
-          )
-          .optional()
-          .describe("Preserve all dialogue during erotic scenes."),
-
-        emotionalJourney: z.object({
-          beforeScene: z.string(),
-          duringScene: z.string(),
-          afterScene: z.string(),
-        }),
-      }),
-    )
-    .describe(
-      "Exhaustive extraction of erotic content. Preserve the EXPERIENCE, not just the mechanics.",
-    ),
-
-  // -------------------------
-  // PLOT MECHANICS
-  // -------------------------
-  plotEvents: z
-    .array(
-      z.object({
-        event: z.string(),
-        participants: z.array(z.string()),
-        consequences: z.array(z.string()),
-        type: z.enum([
-          "Discovery",
-          "Confrontation",
-          "Decision",
-          "Revelation",
-          "Setback",
-          "Victory",
-          "Betrayal",
-          "Alliance",
-          "Compulsion",
-          "Seduction",
-          "Other",
-        ]),
-      }),
-    )
-    .describe("All plot beats, INCLUDING erotic scenes if they advance plot."),
-
-  foreshadowingElements: z
-    .array(
-      z.object({
-        element: z.string().describe("What was hinted at."),
-        exactPhrasing: z.string().describe("Quote the foreshadowing directly."),
-        subtlety: z.enum(["Obvious", "Moderate", "Subtle", "Buried"]),
-      }),
-    )
-    .optional(),
-
-  mysteriesProgressed: z
-    .array(
-      z.object({
-        mystery: z.string(),
-        newClue: z.string(),
-        revealedBy: z.string().optional(),
-      }),
-    )
-    .optional(),
-
-  // -------------------------
-  // QUALITY CONTROL
-  // -------------------------
-  extractionMetrics: z.object({
-    quotesExtracted: z.number().describe("Count of keyQuotes."),
-    sensoryDetailsExtracted: z.number(),
-    compulsionInstancesExtracted: z.number(),
-    eroticScenesExtracted: z.number(),
-
-    completenessScore: z
-      .number()
-      .min(0)
-      .max(10)
-      .describe(
-        "Self-assessment: 1-3 = Rushed/missing data, 4-6 = Adequate, 7-8 = Thorough, 9-10 = Exhaustive. If below 8, you've missed something.",
-      ),
-
-    missedElements: z
-      .array(z.string())
-      .optional()
-      .describe(
-        "If completenessScore < 9, what did you likely miss? (Self-critique)",
-      ),
-  }),
-
-  extractorNotes: z
-    .array(z.string())
-    .optional()
-    .describe(
-      "Free-form notes about unusual elements, ambiguities, or things requiring human clarification.",
-    ),
-});
 
 // ---------------------------------------------------------
 // 1. WORLD BUILDING (The Context)
@@ -458,7 +10,7 @@ export const WorldConceptSchema = z.object({
   id: z
     .string()
     .describe(
-      "Stable identifier for cross-referencing (e.g., 'magic-mindlink', 'corp-hierarchy-01'). Use kebab-case.",
+      "Stable, but short identifier for cross-referencing (e.g., 'magic-mindlink', 'corp-hierarchy-01').",
     ),
   term: z.string().describe("The term or concept as it appears in the story."),
   category: z
@@ -628,7 +180,7 @@ export const ActiveMysterySchema = z.object({
   id: z
     .string()
     .describe(
-      "Stable identifier for cross-referencing (e.g., 'mystery-vanishing-employees').",
+      "Stable, but short identifier for cross-referencing (e.g., 'mystery-vanishing-employees').",
     ),
 
   mysteryName: z
@@ -740,7 +292,9 @@ export const WorldContextSchema = z.object({
       z.object({
         id: z
           .string()
-          .describe("Stable identifier (e.g., 'location-penthouse-suite')."),
+          .describe(
+            "Stable, but short identifier (e.g., 'location-penthouse-suite').",
+          ),
         name: z
           .string()
           .describe("The location's name as it appears in story."),
@@ -847,7 +401,7 @@ export const CharacterAnalysisSchema = z.object({
   id: z
     .string()
     .describe(
-      "Stable identifier for cross-referencing (e.g., 'char-alexis-grey').",
+      "Stable, but short identifier for cross-referencing (e.g., 'char-alexis-grey').",
     ),
 
   status: z
@@ -1566,7 +1120,7 @@ export const CharacterAnalysisSchema = z.object({
           .describe("Why this line matters for characterization."),
       }),
     )
-    .optional()
+    .max(10)
     .describe("Dialogue that captures their voice or reveals character."),
 });
 
@@ -1625,6 +1179,7 @@ export const NarrativeLogSchema = z.object({
 
   plotSummary: z
     .string()
+    .min(250)
     .describe(
       "**CRITICAL: Story-first summary.** Describe plot progression, character choices, and consequences as if erotic content didn't exist. What actually *happened*? What decisions were made? What changed? Focus on: investigations, conflicts, revelations, relationships evolving, plans executed/failed, information gained/lost. 3-5 sentences minimum. Ask: 'Could this summary appear in a mainstream publication?'",
     ),
@@ -1695,7 +1250,7 @@ export const NarrativeLogSchema = z.object({
           .string()
           .optional()
           .describe(
-            "Unique identifier if this scene has ongoing significance (e.g., 'first-time-a-b', 'interrogation-scene-3').",
+            "Stable, but short identifier if this scene has ongoing significance (e.g., 'first-time-a-b', 'interrogation-scene-3').",
           ),
 
         participants: z
@@ -1868,7 +1423,7 @@ export const NarrativeLogSchema = z.object({
                 ),
             }),
           )
-          .optional()
+          .min(8)
           .describe(
             "Capture the SENSUAL aspects—the feel, the atmosphere, the erotic charge—separate from mechanics.",
           ),
@@ -2365,7 +1920,9 @@ export const MasterStoryDocumentSchema = z.object({
     openQuestions: z
       .array(
         z.object({
-          id: z.string().describe("Identifier for tracking resolution."),
+          id: z
+            .string()
+            .describe("Stable, but short identifier for tracking progress."),
           question: z
             .string()
             .describe(
@@ -2388,7 +1945,9 @@ export const MasterStoryDocumentSchema = z.object({
     resolvedQuestions: z
       .array(
         z.object({
-          id: z.string(),
+          id: z
+            .string()
+            .describe("Stable, but short identifier for tracking resolution."),
           question: z.string(),
           resolution: z.string().describe("The answer that was revealed."),
           resolvedInChapter: z.number(),
@@ -2404,7 +1963,9 @@ export const MasterStoryDocumentSchema = z.object({
     subplots: z
       .array(
         z.object({
-          id: z.string(),
+          id: z
+            .string()
+            .describe("Stable, but short identifier for tracking progress."),
           name: z.string().describe("Title or description of subplot."),
           status: z.enum(["Active", "Paused", "Resolved", "Abandoned"]),
           keyCharacters: z.array(z.string()).describe("Primary participants."),
@@ -2532,7 +2093,6 @@ export const scoreSchema = z.object({
   rationale: z.string().describe("The rationale for the score."),
 });
 
-export type ChapterSummary = z.infer<typeof ChapterSummarySchema>;
 export type MasterStoryDocument = z.infer<typeof MasterStoryDocumentSchema>;
 export type CharacterSheet = z.infer<typeof CharacterAnalysisSchema>;
 export type ChapterOutline = z.infer<typeof NarrativeLogSchema>;

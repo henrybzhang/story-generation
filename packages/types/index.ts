@@ -1,11 +1,9 @@
 import z from "zod";
-import type {
-  ChapterSummary,
-  MasterStoryDocument,
-  Score,
-} from "./analysisTypes";
+import type { ChapterSummary } from "./schemas/indirect";
+import type { MasterStoryDocument, Score } from "./schemas/v1";
 
-export * from "./analysisTypes";
+export * from "./schemas/indirect";
+export * from "./schemas/v1";
 
 // --- 1. Zod Schemas as Single Source of Truth ---
 export enum AnalysisMethod {
