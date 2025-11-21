@@ -40,9 +40,9 @@ export const ChapterSummarySchema = z.object({
 
       summary: z
         .string()
-        .min(400)
+        .max(4500)
         .describe(
-          "400-600 word detailed, beat-by-beat narrative. Include: (1) Opening physical/emotional state, (2) Every scene transition and location change, (3) All decision points with alternatives considered, (4) Important dialogue content (summarized) with key verbatim lines, (5) Concrete physical actions with specific verbs, (6) If erotic: full escalation arc from initiation to aftermath, (7) Emotional progression and shifts in arousal/desire/tension, (8) Immediate consequences and character reactions, (9) Any subplot threads or world-building revelations, (10) Closing state. Write as if someone needs to recreate this scene from memory.",
+          "STRICT 400-600 word detailed, beat-by-beat narrative. Include: (1) Opening physical/emotional state, (2) Every scene transition and location change, (3) All decision points with alternatives considered, (4) Important dialogue content (summarized) with key verbatim lines, (5) Concrete physical actions with specific verbs, (6) If erotic: full escalation arc from initiation to aftermath, (7) Emotional progression and shifts in arousal/desire/tension, (8) Immediate consequences and character reactions, (9) Any subplot threads or world-building revelations, (10) Closing state. Write as if someone needs to recreate this scene from memory.",
         ),
 
       // PLOT METADATA
@@ -138,13 +138,13 @@ export const ChapterSummarySchema = z.object({
 
           progression: z
             .string()
-            .min(300)
+            .max(4000)
             .describe(
               "300-500 word SENSUAL NARRATIVE (not checklist) covering: (1) Emotional context and mood, (2) Initiation psychology and who/how/why, (3) SPECIFIC physical escalation with exact body parts, positions, angles, (4) Integrated sensory details throughout, (5) Psychological shifts in control/arousal, (6) Inline dirty talk and dialogue, (7) Power dynamic moments, (8) Resistance attempts with verbatim quotes and responses, (9) Technique specifics (rhythm, pressure, movement), (10) Climax with exact sensations and reactions, (11) Immediate aftermath state. Write to enable scene recreation."
             ),
 
           verbatimEroticText: z
-            .array(z.string().min(10).max(200))
+            .array(z.string().min(10).max(250))
             .min(15)
             .max(30)
             .describe(

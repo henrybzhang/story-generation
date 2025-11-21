@@ -27,7 +27,7 @@ const langChainClient = createLangChainClient();
  */
 const retryWithBackoff = async <T>(
   fn: () => Promise<T>,
-  maxRetries = 3,
+  maxRetries = 1,
   initialDelay = 1000,
 ): Promise<T> => {
   let lastError: Error;
@@ -115,12 +115,15 @@ const analyzeChapterIndirectly = async (
       masterStoryDocument,
     );
 
-    const newMasterDocument = await retryWithBackoff(() =>
+    const rawMasterDocument = await retryWithBackoff(() =>
       langChainClient
         .withStructuredOutput(MasterStoryDocumentSchema)
         .invoke(masterDocPrompt),
     );
     // const newMasterDocument = {};
+
+    const newMasterDocument =
+      MasterStoryDocumentSchema.parse(rawMasterDocument);
 
     // const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
     const score = {
@@ -156,11 +159,14 @@ const analyzeChapterDirectly = async (
       masterStoryDocument,
     );
 
-    const newMasterDocument = await retryWithBackoff(() =>
+    const rawMasterDocument = await retryWithBackoff(() =>
       langChainClient
         .withStructuredOutput(MasterStoryDocumentSchema)
         .invoke(masterDocPrompt),
     );
+
+    const newMasterDocument =
+      MasterStoryDocumentSchema.parse(rawMasterDocument);
 
     // const score = await judgeNewMasterDocument(chapterData, newMasterDocument);
     const score = {

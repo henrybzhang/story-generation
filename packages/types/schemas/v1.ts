@@ -2,16 +2,274 @@ import z from "zod";
 
 export const CURRENT_PROMPT_VERSION = "1.0.0";
 
+const StableId = z
+  .string()
+  .regex(/^[a-z]+(-[a-z0-9]+){1,4}$/)
+  .describe(
+    "Kebab-case identifier. Format: category-descriptor (e.g., 'char-vivian', 'rel-marcus-vivian', 'loc-penthouse') Must be unique across all IDs in document.",
+  );
+
+export const WritingStyleProfileSchema = z.object({
+  proseCharacteristics: z.object({
+    sentenceStructure: z.enum([
+      "Short and punchy",
+      "Medium varied",
+      "Long and flowing",
+      "Mixed complexity",
+    ]),
+
+    paragraphLength: z.enum([
+      "Brief (1-3 sentences)",
+      "Standard (4-6 sentences)",
+      "Extended (7+ sentences)",
+      "Highly variable",
+    ]),
+
+    descriptiveDensity: z
+      .enum([
+        "Sparse/minimalist",
+        "Moderate",
+        "Rich and detailed",
+        "Overwhelming sensory",
+      ])
+      .describe("How much sensory/descriptive detail is present"),
+
+    dialogueStyle: z.object({
+      formality: z.enum(["Casual", "Mixed", "Formal"]),
+      verbosity: z.enum(["Terse", "Moderate", "Verbose"]),
+      distinctiveness: z.enum([
+        "All characters sound similar",
+        "Some voice differentiation",
+        "Strong voice differentiation",
+      ]),
+      taggingStyle: z
+        .string()
+        .describe(
+          "How dialogue tags are used (e.g., 'Minimal tags, action-heavy', 'Standard said/asked', 'Elaborate adverbs')",
+        ),
+    }),
+
+    narrativeDistance: z.enum([
+      "Deep POV (character's thoughts/voice)",
+      "Close third (some narrative voice)",
+      "Distant third (more objective)",
+      "Omniscient (knows all)",
+    ]),
+
+    tenseAndPerson: z.object({
+      tense: z.enum(["Past", "Present", "Mixed"]),
+      person: z.enum(["First", "Second", "Third", "Multiple POV"]),
+    }),
+  }),
+
+  eroticWritingPatterns: z.object({
+    explicitnessLevel: z.enum([
+      "Euphemistic/fade-to-black",
+      "Sensual but vague",
+      "Explicit with some restraint",
+      "Highly explicit/graphic",
+      "Clinical/technical",
+    ]),
+
+    arousalBuildStyle: z
+      .enum([
+        "Sudden/immediate",
+        "Gradual escalation",
+        "Teasing/denial focused",
+        "Psychological before physical",
+      ])
+      .describe("How sexual tension builds in scenes"),
+
+    powerDynamicEmphasis: z
+      .enum([
+        "Subtle/background",
+        "Moderate presence",
+        "Central focus",
+        "Overwhelming",
+      ])
+      .describe("How prominently D/s dynamics feature"),
+
+    sensoryPriority: z
+      .array(
+        z.enum([
+          "Touch/physical sensation",
+          "Visual/appearance",
+          "Sound/voice",
+          "Smell/taste",
+          "Emotional/psychological",
+          "Power/control feelings",
+        ]),
+      )
+      .describe("Order of emphasis in erotic scenes"),
+
+    climaxPresentationStyle: z
+      .string()
+      .describe(
+        "How orgasms are described (e.g., 'Metaphorical/poetic', 'Direct physical reactions', 'Emotional focus', 'Power exchange centered')",
+      ),
+
+    aftercareStyle: z.enum([
+      "Minimal/skipped",
+      "Brief acknowledgment",
+      "Detailed emotional processing",
+      "Extended intimacy focus",
+    ]),
+  }),
+
+  voiceMarkers: z.object({
+    characteristicPhrases: z
+      .array(z.string())
+      .describe(
+        "Recurring phrases or sentence structures unique to this author",
+      ),
+
+    metaphorPatterns: z
+      .array(z.string())
+      .describe(
+        "Types of comparisons used (e.g., 'Often uses ocean/water metaphors', 'Mechanical/technical comparisons')",
+      ),
+
+    internalMonologueStyle: z
+      .string()
+      .describe(
+        "How character thoughts are presented (e.g., 'Stream of consciousness', 'Structured self-reflection', 'Fragmented anxiety', 'Rational analysis')",
+      ),
+
+    transitionTechniques: z
+      .array(z.string())
+      .describe(
+        "How author moves between scenes or topics (e.g., 'Time jumps with white space', 'Smooth narrative bridges', 'Abrupt cuts')",
+      ),
+  }),
+
+  representativeExcerpts: z
+    .array(
+      z.object({
+        excerpt: z
+          .string()
+          .describe("50-150 word sample showcasing distinctive style"),
+        context: z
+          .string()
+          .describe(
+            "What this excerpt demonstrates (e.g., 'Erotic build-up', 'Character voice', 'Scene setting')",
+          ),
+        chapterSource: z.number(),
+      }),
+    )
+    .min(5)
+    .max(10)
+    .describe(
+      "Curated examples of author's voice for AI continuation reference",
+    ),
+});
+
+// ---------------------------------------------------------
+// EROTIC ENCOUNTER TEMPLATES (Pattern Recognition)
+// ---------------------------------------------------------
+export const EroticEncounterTemplateSchema = z.object({
+  templateName: z
+    .string()
+    .describe(
+      "Descriptive name for this pattern (e.g., 'Vivian's Teasing Denial Pattern', 'First-time Premature Climax Scenario')",
+    ),
+
+  frequency: z.number().describe("How many times this pattern has occurred"),
+
+  chapterOccurrences: z
+    .array(z.number())
+    .describe("Which chapters featured this pattern"),
+
+  participants: z.array(z.string()).describe("Characters typically involved"),
+
+  typicalStructure: z.object({
+    initiation: z.string().describe("How these encounters typically begin"),
+    escalation: z.string().describe("Common progression pattern"),
+    climaxPattern: z.string().describe("How the peak typically unfolds"),
+    resolution: z.string().describe("Common aftermath/conclusion"),
+  }),
+
+  commonElements: z.object({
+    setting: z.array(z.string()).describe("Typical locations"),
+    kinks: z.array(z.string()).describe("Recurring kinks in this pattern"),
+    powerDynamic: z.string().describe("Typical dominance/submission pattern"),
+    emotionalTone: z
+      .array(z.string())
+      .describe(
+        "Common emotions (e.g., 'Playful teasing', 'Anxious surrender', 'Desperate need')",
+      ),
+    physicalTechniques: z
+      .array(z.string())
+      .describe("Recurring physical actions"),
+  }),
+
+  variations: z
+    .array(
+      z.object({
+        chapter: z.number(),
+        difference: z
+          .string()
+          .describe("How this instance deviated from the template"),
+      }),
+    )
+    .optional()
+    .describe("Notable deviations that show pattern evolution"),
+
+  narrativeFunction: z
+    .string()
+    .describe(
+      "What this pattern typically accomplishes in the story (e.g., 'Humiliates protagonist to drive character development', 'Establishes Vivian's control')",
+    ),
+});
+
+export const HistoricalContextSchema = z.object({
+  storyTimelineStart: z
+    .string()
+    .describe(
+      "When the story begins (e.g., 'Monday morning, October', 'Winter 2023')",
+    ),
+
+  timeElapsedTotal: z
+    .string()
+    .describe(
+      "Total time passed in story (e.g., '2 weeks', '3 months', '1 year')",
+    ),
+
+  significantDates: z
+    .array(
+      z.object({
+        date: z.string().describe("Specific date if known, or relative time"),
+        event: z.string(),
+        chapter: z.number(),
+        importance: z.enum(["Critical", "Major", "Notable", "Minor"]),
+      }),
+    )
+    .optional()
+    .describe("Important events anchored in timeline"),
+
+  seasonalContext: z
+    .string()
+    .optional()
+    .describe("Time of year if relevant (for weather, holidays, etc.)"),
+
+  timeJumps: z
+    .array(
+      z.object({
+        betweenChapters: z
+          .tuple([z.number(), z.number()])
+          .describe("[previousChapter, nextChapter]"),
+        duration: z.string(),
+        whatHappenedOffscreen: z.string().optional(),
+      }),
+    )
+    .optional()
+    .describe("Track any significant time skips"),
+});
 
 // ---------------------------------------------------------
 // 1. WORLD BUILDING (The Context)
 // ---------------------------------------------------------
 export const WorldConceptSchema = z.object({
-  id: z
-    .string()
-    .describe(
-      "Stable, but short identifier for cross-referencing (e.g., 'magic-mindlink', 'corp-hierarchy-01').",
-    ),
+  id: StableId,
   term: z.string().describe("The term or concept as it appears in the story."),
   category: z
     .enum([
@@ -177,10 +435,12 @@ export const WorldConceptSchema = z.object({
 });
 
 export const ActiveMysterySchema = z.object({
-  id: z
-    .string()
+  id: StableId,
+
+  lastUpdatedInChapter: z
+    .number()
     .describe(
-      "Stable, but short identifier for cross-referencing (e.g., 'mystery-vanishing-employees').",
+      "Most recent chapter where significant new information about this mystery was revealed.",
     ),
 
   mysteryName: z
@@ -290,11 +550,7 @@ export const WorldContextSchema = z.object({
   locations: z
     .array(
       z.object({
-        id: z
-          .string()
-          .describe(
-            "Stable, but short identifier (e.g., 'location-penthouse-suite').",
-          ),
+        id: StableId,
         name: z
           .string()
           .describe("The location's name as it appears in story."),
@@ -348,7 +604,6 @@ export const WorldContextSchema = z.object({
         lastAppearance: z.number(),
       }),
     )
-    .optional()
     .describe("Recurring or significant locations that shape the narrative."),
 
   timeline: z
@@ -384,7 +639,6 @@ export const WorldContextSchema = z.object({
           "Key dates that matter to the plot (deadlines, anniversaries, scheduled events).",
         ),
     })
-    .optional()
     .describe("Chronological tracking to maintain temporal consistency."),
 });
 
@@ -398,10 +652,12 @@ export const CharacterAnalysisSchema = z.object({
       "Primary name used in narration. Use consistent spelling/capitalization.",
     ),
 
-  id: z
-    .string()
+  id: StableId,
+
+  lastUpdatedInChapter: z
+    .number()
     .describe(
-      "Stable, but short identifier for cross-referencing (e.g., 'char-alexis-grey').",
+      "Most recent chapter where significant new information about this character was revealed.",
     ),
 
   status: z
@@ -432,7 +688,6 @@ export const CharacterAnalysisSchema = z.object({
           .describe("Which characters know them by this name."),
       }),
     )
-    .optional()
     .describe("Alternative names, nicknames, codenames, or titles."),
 
   role: z
@@ -452,7 +707,7 @@ export const CharacterAnalysisSchema = z.object({
   screenTime: z
     .number()
     .describe(
-      "Total number of chapters where they had significant presence (speaking role or POV).",
+      "Total number of chapters where character had speaking lines OR internal POV. Mentioned-only doesn't count."
     ),
 
   lastAppearance: z
@@ -578,29 +833,6 @@ export const CharacterAnalysisSchema = z.object({
       .describe(
         "Track significant emotional shifts across chapters to show arc.",
       ),
-
-    triggers: z
-      .array(
-        z.object({
-          trigger: z
-            .string()
-            .describe(
-              "Specific stimuli that provoke strong reactions (e.g., 'Being called a liar', 'Sudden loud noises', 'References to her mother').",
-            ),
-          response: z.string().describe("How they typically react."),
-        }),
-      )
-      .optional()
-      .describe(
-        "Psychological sensitivities relevant to interactions and erotic scenes.",
-      ),
-
-    copingMechanisms: z
-      .array(z.string())
-      .optional()
-      .describe(
-        "How they handle stress, trauma, or difficult emotions (e.g., 'Overworks to avoid processing feelings', 'Substance use', 'Seeks physical intimacy', 'Isolates and withdraws', 'Humor/deflection').",
-      ),
   }),
 
   eroticProfile: z.object({
@@ -653,10 +885,10 @@ export const CharacterAnalysisSchema = z.object({
       .describe("Psychological patterns around desire."),
 
     sexualHistory: z
-      .string()
+      .array(z.string())
       .optional()
       .describe(
-        "Relevant background about their sexual experience (e.g., 'Sexually inexperienced—first partner was 6 months ago', 'Extensive experience in BDSM community', 'History of using sex for manipulation', 'Recovering from sexual trauma').",
+        "Array of eroticEncounter IDs from NarrativeLog that involve these two characters. References the detailed encounter records in the narrative log.",
       ),
 
     evolutionNotes: z
@@ -674,181 +906,68 @@ export const CharacterAnalysisSchema = z.object({
       .describe("Track how their sexuality develops through the story."),
   }),
 
-  relationships: z
+  skills: z
     .array(
       z.object({
-        targetName: z
-          .string()
-          .describe("Name of the other character. Use consistent naming."),
-
-        relationshipType: z
-          .enum([
-            "Romantic",
-            "Sexual",
-            "Romantic & Sexual",
-            "Familial",
-            "Professional",
-            "Friendship",
-            "Rivalry",
-            "Enmity",
-            "Mentor/Mentee",
-            "Transactional",
-            "Complicated",
-          ])
-          .describe("Primary category of relationship."),
-
-        dynamicSummary: z
+        skill: z
           .string()
           .describe(
-            "One-sentence characterization of their current relationship dynamic (e.g., 'Forbidden attraction between boss and employee', 'Childhood friends with unresolved sexual tension', 'Bitter rivals forced to cooperate', 'Master/slave dynamic built on mutual respect').",
+            "Specific competency (e.g., 'Corporate law', 'Krav Maga', 'Seduction', 'Hacking', 'Potion brewing').",
           ),
 
-        trust: z
-          .number()
-          .min(0)
-          .max(100)
+        proficiency: z
+          .enum(["Novice", "Competent", "Expert", "Master", "Legendary"])
           .describe(
-            "Emotional safety and reliability. 0 = Complete distrust, 100 = Absolute faith. Measures whether Character A believes Character B will act in their interest.",
+            "Skill level affecting success probability and narrative impact.",
           ),
 
-        lust: z
-          .number()
-          .min(0)
-          .max(100)
-          .describe(
-            "Physical desire and sexual attraction. 0 = No attraction, 100 = Overwhelming desire. Independent of trust.",
-          ),
-
-        respect: z
-          .number()
-          .min(0)
-          .max(100)
-          .describe(
-            "Admiration for competence, character, or abilities. 0 = Complete contempt, 100 = Deep admiration.",
-          ),
-
-        resentment: z
-          .number()
-          .min(0)
-          .max(100)
-          .describe(
-            "Accumulated grievances and grudges. 0 = No hard feelings, 100 = Consuming hatred. Tracks unresolved conflicts.",
-          ),
-
-        affection: z
-          .number()
-          .min(0)
-          .max(100)
-          .optional()
-          .describe(
-            "Emotional warmth and care beyond trust (e.g., love, fondness). Different from lust.",
-          ),
-
-        dependency: z
-          .number()
-          .min(0)
-          .max(100)
-          .optional()
-          .describe(
-            "How much Character A needs Character B (emotionally, financially, sexually, etc.). Can create unhealthy dynamics.",
-          ),
-
-        powerDynamic: z
+        relevance: z
           .string()
           .describe(
-            "Who holds leverage and what kind (e.g., 'B holds financial power over A', 'A has blackmail material on B', 'Balanced—mutual dependence', 'A holds emotional power—B is more invested', 'Formal hierarchy: B is A's boss'). Be specific about the source of power.",
+            "How this skill affects the plot or character arc (e.g., 'Used to gather intelligence', 'Creates physical intimidation factor', 'Source of self-worth').",
           ),
 
-        consentDynamic: z
+        limitations: z
           .string()
           .optional()
           .describe(
-            "If this is a sexual/erotic relationship, describe the nature of consent (e.g., 'Enthusiastic and negotiated', 'Dubious—power imbalance makes true consent questionable', 'Coerced through blackmail', 'CNC—consensual non-consent established in advance').",
+            "Constraints on this skill (e.g., 'Hacking requires time and equipment—not available in emergencies', 'Combat skills reduced due to injury').",
           ),
 
-        boundaries: z
-          .array(
-            z.object({
-              boundary: z.string(),
-              establishedInChapter: z.number().optional(),
-              violated: z
-                .boolean()
-                .describe("Whether this boundary was broken."),
-            }),
-          )
-          .optional()
-          .describe(
-            "Explicit or implicit limits set within this relationship.",
-          ),
-
-        relationshipHistory: z
+        development: z
           .array(
             z.object({
               chapter: z.number(),
-              event: z.string().describe("What happened between them."),
-              trustDelta: z
-                .number()
-                .optional()
-                .describe("Change in trust (-100 to +100)."),
-              lustDelta: z.number().optional(),
-              respectDelta: z.number().optional(),
-              resentmentDelta: z.number().optional(),
-              significance: z
-                .enum(["Minor", "Moderate", "Major", "Defining"])
-                .optional(),
+              improvement: z.string(),
             }),
           )
           .optional()
-          .describe(
-            "Chronological log of key relationship events showing evolution.",
-          ),
-
-        secretsHeld: z
-          .array(
-            z.object({
-              secret: z
-                .string()
-                .describe("What Character A knows about Character B."),
-              discoveredInChapter: z.number(),
-              doesBKnowAKnows: z
-                .boolean()
-                .describe("Is this a secret, or known information?"),
-              leverage: z
-                .string()
-                .optional()
-                .describe("How this knowledge could be used."),
-            }),
-          )
-          .optional()
-          .describe("Information asymmetries that create tension or power."),
-
-        secretsTargetHolds: z
-          .array(
-            z.object({
-              secret: z
-                .string()
-                .describe("What Character B knows about Character A."),
-              discoveredInChapter: z.number(),
-              doesAKnowBKnows: z.boolean(),
-              leverage: z.string().optional(),
-            }),
-          )
-          .optional()
-          .describe("Reverse perspective—what the other character knows."),
-
-        futureProjection: z
-          .string()
-          .optional()
-          .describe(
-            "Where this relationship seems to be heading based on current trajectory (e.g., 'Moving toward romantic commitment', 'Likely to explode into confrontation', 'Gradual dissolution').",
-          ),
+          .describe("Track skill progression."),
       }),
     )
     .describe(
-      "All significant relationships, tracking power, emotion, and evolution. Each relationship should have reciprocal entries from both characters' perspectives.",
+      "Competencies that make them effective or interesting. Focus on plot-relevant skills.",
     ),
 
-  narrativeArc: z.object({
+  flaws: z
+    .array(
+      z.object({
+        flaw: z
+          .string()
+          .describe(
+            "Specific weakness, vice, or negative trait (e.g., 'Arrogance leads to underestimating opponents', 'Jealous and possessive in relationships', 'Addiction to painkillers').",
+          ),
+        impact: z.string().describe("How this flaw creates problems for them."),
+        acknowledged: z
+          .boolean()
+          .describe("Does the character recognize this flaw in themselves?"),
+      }),
+    )
+    .describe(
+      "Character flaws that create realistic complexity and narrative conflict.",
+    ),
+
+  arc: z.object({
     shortTermGoal: z
       .string()
       .describe(
@@ -944,50 +1063,6 @@ export const CharacterAnalysisSchema = z.object({
       ),
   }),
 
-  skills: z
-    .array(
-      z.object({
-        skill: z
-          .string()
-          .describe(
-            "Specific competency (e.g., 'Corporate law', 'Krav Maga', 'Seduction', 'Hacking', 'Potion brewing').",
-          ),
-
-        proficiency: z
-          .enum(["Novice", "Competent", "Expert", "Master", "Legendary"])
-          .describe(
-            "Skill level affecting success probability and narrative impact.",
-          ),
-
-        relevance: z
-          .string()
-          .describe(
-            "How this skill affects the plot or character arc (e.g., 'Used to gather intelligence', 'Creates physical intimidation factor', 'Source of self-worth').",
-          ),
-
-        limitations: z
-          .string()
-          .optional()
-          .describe(
-            "Constraints on this skill (e.g., 'Hacking requires time and equipment—not available in emergencies', 'Combat skills reduced due to injury').",
-          ),
-
-        development: z
-          .array(
-            z.object({
-              chapter: z.number(),
-              improvement: z.string(),
-            }),
-          )
-          .optional()
-          .describe("Track skill progression."),
-      }),
-    )
-    .optional()
-    .describe(
-      "Competencies that make them effective or interesting. Focus on plot-relevant skills.",
-    ),
-
   compulsionProfile: z
     .object({
       canCompel: z
@@ -1034,36 +1109,70 @@ export const CharacterAnalysisSchema = z.object({
               "Why they're susceptible (e.g., 'Latent submissive desires', 'Magical bloodline weakness', 'Technological implant exploitable', 'Trust issues make them guard down').",
             ),
 
-          triggerWords: z
-            .array(z.string())
-            .optional()
-            .describe(
-              "Specific phrases or stimuli that bypass their resistance.",
-            ),
-
-          compulsionHistory: z
+          triggersList: z
             .array(
               z.object({
-                chapter: z.number(),
-                compelledBy: z.string(),
-                method: z.string(),
-                action: z.string().describe("What they were compelled to do."),
-                awareness: z.enum([
-                  "Fully Aware",
-                  "Partially Aware",
-                  "Unaware",
-                  "Retroactively Aware",
+                id: StableId,
+                triggerType: z.enum([
+                  "Verbal command",
+                  "Physical touch",
+                  "Visual cue",
+                  "Emotional state",
+                  "Environmental condition",
+                  "Combination",
                 ]),
-                emotionalResponse: z
+                specificTrigger: z
                   .string()
                   .describe(
-                    "How they felt during/after (e.g., 'Conflicted arousal', 'Violated but craving more', 'Blissfully compliant', 'Anger at loss of control').",
+                    "Exact trigger (e.g., specific phrase, gesture, location)",
                   ),
-                lastingEffects: z.array(z.string()).optional(),
+                effect: z.string().describe("What happens when triggered"),
+                firstEstablished: z
+                  .number()
+                  .describe(
+                    "Chapter where this trigger was established in the character",
+                  ),
+                authorizedCharacters: z
+                  .array(z.string())
+                  .optional()
+                  .describe(
+                    "List of character IDs that can use this trigger on this subject. Everyone can if this is empty",
+                  ),
               }),
             )
             .optional()
-            .describe("Record of times this character has been compelled."),
+            .describe(
+              "Catalog all established triggers the character has for reference",
+            ),
+
+          resistanceEvolution: z
+            .object({
+              baselineResistance: z
+                .string()
+                .describe("Initial ability to resist (from early chapters)"),
+              currentResistance: z
+                .string()
+                .describe("Current ability to resist"),
+              factorsIncreasingResistance: z.array(z.string()).optional(),
+              factorsDecreasingResistance: z.array(z.string()).optional(),
+              momentaryBreakthroughs: z
+                .array(
+                  z.object({
+                    chapter: z.number(),
+                    description: z
+                      .string()
+                      .describe("When character briefly broke through control"),
+                    lasted: z
+                      .boolean()
+                      .describe(
+                        "Whether the breakthrough stuck or was overridden",
+                      ),
+                  }),
+                )
+                .optional(),
+            })
+            .optional()
+            .describe("Track how resistance changes over time"),
         })
         .optional(),
 
@@ -1090,25 +1199,6 @@ export const CharacterAnalysisSchema = z.object({
       "Character's relationship to compulsion mechanics—both as wielder and target.",
     ),
 
-  flaws: z
-    .array(
-      z.object({
-        flaw: z
-          .string()
-          .describe(
-            "Specific weakness, vice, or negative trait (e.g., 'Arrogance leads to underestimating opponents', 'Jealous and possessive in relationships', 'Addiction to painkillers').",
-          ),
-        impact: z.string().describe("How this flaw creates problems for them."),
-        acknowledged: z
-          .boolean()
-          .describe("Does the character recognize this flaw in themselves?"),
-      }),
-    )
-    .optional()
-    .describe(
-      "Character flaws that create realistic complexity and narrative conflict.",
-    ),
-
   notableQuotes: z
     .array(
       z.object({
@@ -1122,6 +1212,592 @@ export const CharacterAnalysisSchema = z.object({
     )
     .max(10)
     .describe("Dialogue that captures their voice or reveals character."),
+});
+
+export const RelationshipSchema = z.object({
+  id: StableId,
+
+  lastUpdatedInChapter: z
+    .number()
+    .describe(
+      "Most recent chapter where significant new information about this relationship was revealed.",
+    ),
+
+  participants: z
+    .array(z.string())
+    .min(2)
+    .describe(
+      "Character IDs involved in this relationship. Usually 2, but can support polyamorous or group dynamics.",
+    ),
+
+  relationshipType: z
+    .enum([
+      "Romantic",
+      "Sexual",
+      "Romantic & Sexual",
+      "Familial",
+      "Professional",
+      "Friendship",
+      "Rivalry",
+      "Enmity",
+      "Mentor/Mentee",
+      "Transactional",
+      "Complicated",
+    ])
+    .describe("Primary category of relationship."),
+
+  dynamicSummary: z
+    .string()
+    .describe(
+      "One-sentence characterization of their current relationship dynamic (e.g., 'Forbidden attraction between boss and employee', 'Childhood friends with unresolved sexual tension', 'Bitter rivals forced to cooperate', 'Master/slave dynamic built on mutual respect').",
+    ),
+
+  relationshipArchetype: z
+    .string()
+    .optional()
+    .describe(
+      "Pattern this relationship follows (e.g., 'Innocent corrupted by experienced', 'Rivals to lovers', 'Obsessive pursuit', 'Forbidden fruit', 'Power exchange').",
+    ),
+
+  firstInteraction: z
+    .number()
+    .describe("Chapter number where these characters first met or interacted."),
+
+  status: z
+    .enum(["Active", "Dormant", "Estranged", "Ended", "Complicated", "Secret"])
+    .describe("Current state. 'Complicated' = active but with unresolved conflicts or unclear boundaries. 'Secret' = active but hidden from others."),
+
+  // ============================================
+  // ASYMMETRIC DATA - Per-participant perspectives
+  // ============================================
+  participantPerspectives: z
+    .array(
+      z.object({
+        characterId: z
+          .string()
+          .describe("The character id whose perspective this represents."),
+
+        towardCharacterId: z
+          .string()
+          .optional()
+          .describe(
+            "If more than 2 participants, specify the character id this perspective is toward.",
+          ),
+
+        // Core metrics
+        trust: z
+          .number()
+          .min(0)
+          .max(100)
+          .describe(
+            "Emotional safety and reliability. 0 = Complete distrust, 100 = Absolute faith. Measures whether this character believes the other will act in their interest.",
+          ),
+
+        lust: z
+          .number()
+          .min(0)
+          .max(100)
+          .describe(
+            "Physical desire and sexual attraction. 0 = No attraction, 100 = Overwhelming desire. Independent of trust.",
+          ),
+
+        respect: z
+          .number()
+          .min(0)
+          .max(100)
+          .describe(
+            "Admiration for competence, character, or abilities. 0 = Complete contempt, 100 = Deep admiration.",
+          ),
+
+        resentment: z
+          .number()
+          .min(0)
+          .max(100)
+          .describe(
+            "Accumulated grievances and grudges. 0 = No hard feelings, 100 = Consuming hatred. Tracks unresolved conflicts.",
+          ),
+
+        affection: z
+          .number()
+          .min(0)
+          .max(100)
+          .optional()
+          .describe(
+            "Emotional warmth and care beyond trust (e.g., love, fondness). Different from lust.",
+          ),
+
+        dependency: z
+          .number()
+          .min(0)
+          .max(100)
+          .optional()
+          .describe(
+            "How much this character needs the other (emotionally, financially, sexually, etc.). Can create unhealthy dynamics.",
+          ),
+
+        fear: z
+          .number()
+          .min(0)
+          .max(100)
+          .optional()
+          .describe(
+            "Level of fear or intimidation felt toward the other character. 0 = No fear, 100 = Terrified.",
+          ),
+
+        // Character-specific perception
+        perceivedRelationship: z
+          .string()
+          .optional()
+          .describe(
+            "How this character would describe the relationship (may differ from reality or other's perception).",
+          ),
+
+        desires: z
+          .string()
+          .optional()
+          .describe(
+            "What this character wants from the relationship (e.g., 'Wants commitment', 'Wants to dominate completely', 'Wants to escape').",
+          ),
+
+        fears: z
+          .string()
+          .optional()
+          .describe(
+            "What this character fears about the relationship (e.g., 'Fears abandonment', 'Fears losing control', 'Fears discovery').",
+          ),
+      }),
+    )
+    .describe(
+      "Per-participant feelings and knowledge. Each participant gets their own perspective entry.",
+    ),
+
+  // ============================================
+  // SHARED/MUTUAL PROPERTIES
+  // ============================================
+
+  powerDynamic: z
+    .string()
+    .describe(
+      "Who holds leverage and what kind (e.g., 'B holds financial power over A', 'A has blackmail material on B', 'Balanced—mutual dependence', 'Formal hierarchy: B is A's boss'). Be specific about the source of power.",
+    ),
+
+  powerDynamicHistory: z
+    .array(
+      z.object({
+        chapter: z.number(),
+        dominantParty: z
+          .string()
+          .describe(
+            "Character ID of who typically holds dominance, or 'balanced' if equal.",
+          ),
+        dominanceStyle: z
+          .string()
+          .optional()
+          .describe(
+            "How they typically exert control (e.g., 'Playful mockery', 'Stern commands', 'Subtle manipulation').",
+          ),
+        balanceDescription: z
+          .string()
+          .describe(
+            "e.g., 'Complete control', 'Mostly dominant', 'Balanced', 'Power struggle', 'Shifting'.",
+          ),
+        keyMoment: z
+          .string()
+          .describe("What established or shifted this balance."),
+      }),
+    )
+    .optional()
+    .describe("Track how power balance evolves over time."),
+
+  consentDynamic: z
+    .string()
+    .optional()
+    .describe(
+      "If this is a sexual/erotic relationship, describe the nature of consent (e.g., 'Enthusiastic and negotiated', 'Dubious—power imbalance makes true consent questionable', 'Coerced through blackmail', 'CNC—consensual non-consent established in advance').",
+    ),
+
+  boundaries: z
+    .array(
+      z.object({
+        boundary: z.string().describe("The limit or rule established."),
+        setBy: z
+          .string()
+          .optional()
+          .describe("Character ID who established this boundary."),
+        establishedInChapter: z.number().optional(),
+        violated: z.boolean().describe("Whether this boundary was broken."),
+        violatedInChapter: z.number().optional(),
+        violatedBy: z
+          .string()
+          .optional()
+          .describe("Character ID who violated it."),
+        consequence: z
+          .string()
+          .optional()
+          .describe("What happened as a result of violation."),
+      }),
+    )
+    .describe("Explicit or implicit limits set within this relationship."),
+
+  // ============================================
+  // RELATIONSHIP HISTORY & EVOLUTION
+  // ============================================
+
+  relationshipHistory: z
+    .array(
+      z.object({
+        chapter: z.number(),
+        event: z.string().describe("What happened between them."),
+        initiatedBy: z
+          .string()
+          .optional()
+          .describe("Character ID who initiated the event."),
+        significance: z
+          .enum(["Minor", "Moderate", "Major", "Defining"])
+          .optional(),
+        // Deltas can be specified per-character if asymmetric impact
+        impactOnParticipants: z
+          .array(
+            z.object({
+              characterId: z
+                .string()
+                .describe("Character ID who experienced this impact."),
+              trustDelta: z
+                .number()
+                .optional()
+                .describe("Change in trust (-100 to +100)."),
+              lustDelta: z.number().optional(),
+              respectDelta: z.number().optional(),
+              resentmentDelta: z.number().optional(),
+              affectionDelta: z.number().optional(),
+              note: z
+                .string()
+                .optional()
+                .describe("Character-specific reaction."),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .optional()
+    .describe(
+      "Chronological log of key relationship events showing evolution.",
+    ),
+
+  intimacyProgression: z
+    .array(
+      z.object({
+        chapter: z.number(),
+        milestone: z
+          .string()
+          .describe(
+            "e.g., 'First kiss', 'First sexual encounter', 'First compulsion', 'Emotional vulnerability shown', 'Said I love you'.",
+          ),
+        context: z.string().describe("Circumstances of this milestone."),
+        initiatedBy: z.string().optional().describe("Character ID."),
+        mutuallyDesired: z
+          .boolean()
+          .optional()
+          .describe("Was this wanted by both parties?"),
+      }),
+    )
+    .optional()
+    .describe("Track progression of physical and emotional intimacy."),
+
+  conflictLog: z
+    .array(
+      z.object({
+        chapter: z.number(),
+        conflictType: z.enum([
+          "Misunderstanding",
+          "Value clash",
+          "Betrayal",
+          "Jealousy",
+          "Power struggle",
+          "External pressure",
+          "Boundary violation",
+          "Other",
+        ]),
+        description: z.string(),
+        resolution: z.string().optional(),
+        resolvedInChapter: z.number().optional(),
+        lingersAsResentment: z
+          .boolean()
+          .optional()
+          .describe("Did this conflict leave lasting damage?"),
+      }),
+    )
+    .optional()
+    .describe("Track conflicts and their resolutions."),
+
+  secretsAndLies: z
+    .array(
+      z.object({
+        secretHolder: z.string().describe("Character ID keeping the secret."),
+        secretKeptFrom: z.string().describe("Character ID in the dark."),
+        secretContent: z.string().describe("What is being hidden."),
+        doesOtherKnowTheyKnow: z
+          .boolean()
+          .describe("Is this knowledge secret, or known to be known?"),
+        leverage: z
+          .string()
+          .optional()
+          .describe("How this knowledge could be used."),
+        establishedInChapter: z.number(),
+        revealed: z.boolean(),
+        revealedInChapter: z.number().optional(),
+        howRevealed: z
+          .string()
+          .optional()
+          .describe("Confessed, discovered, third party revealed, etc."),
+        impactOnRelationship: z.string().optional(),
+      }),
+    )
+    .optional()
+    .describe("Track deceptions between participants and their revelations."),
+
+  // ============================================
+  // COMPULSION-SPECIFIC (if applicable)
+  // ============================================
+
+  compulsionDynamics: z
+    .object({
+      compellerCharacterId: z
+        .string()
+        .optional()
+        .describe("Character ID of who holds compulsion power."),
+
+      subjectCharacterId: z
+        .string()
+        .optional()
+        .describe("Character ID of who is subject to compulsion."),
+
+      compulsionEstablished: z
+        .number()
+        .optional()
+        .describe("Chapter where compulsion dynamic began."),
+
+      activeEffects: z
+        .array(
+          z.object({
+            effect: z
+              .string()
+              .describe(
+                "Current compulsion effect (e.g., 'Cannot lie to compeller', 'Aroused by specific trigger', 'Obeys direct commands').",
+              ),
+            establishedInChapter: z.number(),
+            permanence: z.enum([
+              "Temporary",
+              "Semi-permanent",
+              "Permanent",
+              "Unknown",
+            ]),
+            canBeResisted: z.boolean(),
+            resistanceConditions: z
+              .string()
+              .optional()
+              .describe("Under what circumstances resistance is possible."),
+          }),
+        )
+        .optional(),
+
+      compulsionHistory: z
+        .array(
+          z.object({
+            chapter: z.number(),
+            action: z
+              .string()
+              .describe("What the subject was compelled to do."),
+            method: z.string(),
+            context: z.string(),
+            triggerList: z
+              .array(
+                z.object({
+                  triggerId: z
+                    .string()
+                    .describe("Trigger ID used to compel the subject."),
+                  effectiveness: z.enum([
+                    "Complete success",
+                    "Partial",
+                    "Resisted",
+                    "Failed",
+                  ]),
+                }),
+              )
+              .optional()
+              .describe("List of triggers used to compel the subject."),
+            subjectAwareness: z.enum([
+              "Fully Aware",
+              "Partially Aware",
+              "Unaware",
+              "Retroactively Aware",
+            ]),
+            subjectResponse: z
+              .string()
+              .describe(
+                "How the subject felt during/after (e.g., 'Conflicted arousal', 'Violated but craving more', 'Blissfully compliant').",
+              ),
+            resistanceAttempted: z.boolean().optional(),
+            resistanceSuccessful: z.boolean().optional(),
+            lastingEffects: z.array(z.string()).optional(),
+          }),
+        )
+        .optional(),
+
+      consentFramework: z
+        .string()
+        .optional()
+        .describe(
+          "The established understanding around compulsion use (e.g., 'Pre-negotiated CNC', 'Non-consensual control', 'Consensual surrender', 'Coerced initial consent').",
+        ),
+    })
+    .optional()
+    .describe(
+      "Track compulsion-specific dynamics if this relationship involves mind control, hypnosis, or similar mechanics.",
+    ),
+
+  // ============================================
+  // EROTIC SPECIFICS (if applicable)
+  // ============================================
+
+  eroticDynamics: z
+    .object({
+      sexualCompatibility: z
+        .string()
+        .optional()
+        .describe(
+          "How well their desires and styles mesh (e.g., 'Highly compatible—both enjoy power exchange', 'Friction—different libido levels', 'Complementary—one's kinks match other's desires').",
+        ),
+
+      establishedActivities: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "Sexual activities they've engaged in together (e.g., 'Oral sex', 'Bondage', 'Penetrative sex', 'Orgasm denial').",
+        ),
+
+      unexploredTensions: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "Sexual tensions or desires that haven't been acted on yet (e.g., 'A wants to try dominance reversal', 'Unspoken interest in adding third party').",
+        ),
+
+      sexualHistory: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "Array of eroticEncounter IDs from NarrativeLog that involve these two characters. References the detailed encounter records in the narrative log.",
+        ),
+
+      exclusivity: z
+        .string()
+        .optional()
+        .describe(
+          "Status of sexual exclusivity (e.g., 'Monogamous', 'Open', 'One-sided expectation', 'Undefined').",
+        ),
+    })
+    .optional()
+    .describe("Track sexual dynamics if this is an erotic relationship."),
+
+  interactionPatterns: z
+    .array(
+      z.object({
+        context: z
+          .string()
+          .describe(
+            "Type of interaction (e.g., 'Sexual encounters', 'Public settings', 'Private conversations').",
+          ),
+        typicalBehavior: z
+          .string()
+          .describe("How they usually behave in this context."),
+        exceptions: z
+          .array(
+            z.object({
+              chapter: z.number(),
+              deviation: z.string(),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .optional()
+    .describe("Recurring behavioral patterns in different contexts."),
+
+  communicationStyle: z
+    .object({
+      dominant: z
+        .string()
+        .optional()
+        .describe("How the dominant party typically speaks/acts."),
+      submissive: z
+        .string()
+        .optional()
+        .describe("How the submissive party typically responds."),
+      keyPhrases: z
+        .array(
+          z.object({
+            speaker: z.string().describe("Character ID of the speaker."),
+            phrase: z.string(),
+            function: z
+              .string()
+              .describe("What this phrase typically accomplishes."),
+          }),
+        )
+        .optional()
+        .describe("Recurring dialogue patterns."),
+    })
+    .optional()
+    .describe("Communication patterns between participants."),
+
+  boundaryTesting: z
+    .object({
+      frequency: z.enum([
+        "Never",
+        "Rare",
+        "Occasional",
+        "Frequent",
+        "Constant",
+      ]),
+      submissivePushback: z
+        .array(z.string())
+        .describe("Ways the submissive tries to resist or negotiate."),
+      dominantResponse: z
+        .array(z.string())
+        .describe("How the dominant typically handles resistance."),
+    })
+    .optional()
+    .describe("Track boundary testing and negotiation patterns."),
+
+  evolutionTrajectory: z
+    .string()
+    .optional()
+    .describe("How this dynamic has changed over analyzed chapters."),
+
+  // ============================================
+  // NARRATIVE PLANNING
+  // ============================================
+
+  futureProjection: z
+    .string()
+    .optional()
+    .describe(
+      "Where this relationship seems to be heading based on current trajectory (e.g., 'Moving toward romantic commitment', 'Likely to explode into confrontation', 'Gradual dissolution', 'Deepening obsession').",
+    ),
+
+  narrativePotential: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Story opportunities this relationship creates (e.g., 'Betrayal when secret revealed', 'Alliance against common enemy', 'Jealousy from third party').",
+    ),
+
+  unresolved: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Open questions or tensions that need resolution (e.g., 'A doesn't know B is married', 'Power imbalance unsustainable long-term', 'Mutual attraction unacknowledged').",
+    ),
 });
 
 // ---------------------------------------------------------
@@ -1179,7 +1855,7 @@ export const NarrativeLogSchema = z.object({
 
   plotSummary: z
     .string()
-    .min(250)
+    .max(4500)
     .describe(
       "**CRITICAL: Story-first summary.** Describe plot progression, character choices, and consequences as if erotic content didn't exist. What actually *happened*? What decisions were made? What changed? Focus on: investigations, conflicts, revelations, relationships evolving, plans executed/failed, information gained/lost. 3-5 sentences minimum. Ask: 'Could this summary appear in a mainstream publication?'",
     ),
@@ -1246,12 +1922,12 @@ export const NarrativeLogSchema = z.object({
   eroticEncounters: z
     .array(
       z.object({
-        encounterID: z
+        id: StableId,
+
+        matchesTemplate: z
           .string()
           .optional()
-          .describe(
-            "Stable, but short identifier if this scene has ongoing significance (e.g., 'first-time-a-b', 'interrogation-scene-3').",
-          ),
+          .describe("ID of EroticEncounterTemplate if this follows a pattern"),
 
         participants: z
           .array(z.string())
@@ -1284,239 +1960,232 @@ export const NarrativeLogSchema = z.object({
 
         compulsionDynamics: z
           .object({
-            compulsionPresent: z
-              .boolean()
-              .describe("Was compulsion used in this encounter?"),
+            controller: z.string().describe("Who wielded the compulsion."),
+            subject: z.array(z.string()).describe("Who was compelled."),
 
-            compulsionDetails: z
+            method: z
+              .string()
+              .describe(
+                "Specific compulsion method used (e.g., 'Hypnotic eye contact', 'Pheromone release during kiss', 'Verbal command while subject aroused', 'Mind-reading + suggestion').",
+              ),
+
+            triggerMechanism: z
+              .string()
+              .describe(
+                "What activated the compulsion (e.g., 'Spoken trigger word from last session', 'Physical touch to temple', 'Subject's arousal reached threshold').",
+              ),
+
+            commandsGiven: z
+              .array(
+                z.object({
+                  command: z.string().describe("Exact instruction given."),
+                  compliance: z.enum([
+                    "Immediate",
+                    "Gradual",
+                    "Partial",
+                    "Resisted",
+                  ]),
+                  subjectExperience: z
+                    .string()
+                    .describe(
+                      "What the subject felt during compliance (e.g., 'Overwhelming need to obey', 'Dreamlike haze', 'Fighting but body moving anyway', 'Blissful absence of will').",
+                    ),
+                }),
+              )
+              .optional(),
+
+            triggersUsed: z
+              .array(z.string())
+              .optional()
+              .describe(
+                "What triggered the compulsion (e.g., 'Spoken trigger word from last session', 'Physical touch to temple', 'Subject's arousal reached threshold').",
+              ),
+
+            awarenessLevel: z
+              .enum([
+                "Subject fully aware but unable to resist",
+                "Subject aware but perceives actions as own desire",
+                "Subject in trance with limited awareness",
+                "Subject completely unaware in autopilot mode",
+                "Subject retroactively aware and realizes after",
+              ])
+              .describe("Subject's cognitive state during compulsion."),
+
+            resistanceAttempts: z
+              .array(
+                z.object({
+                  attempt: z.string(),
+                  success: z.boolean(),
+                  consequence: z.string().optional(),
+                }),
+              )
+              .optional()
+              .describe("Did subject try to resist? What happened?"),
+
+            pleasureEnhancement: z
+              .string()
+              .optional()
+              .describe(
+                "If compulsion amplified pleasure, describe the mechanism (e.g., 'Nervous system directly stimulated', 'Inhibitions removed—deeper orgasm', 'Pain receptors converted to pleasure').",
+              ),
+
+            memoryAlteration: z
               .object({
-                controller: z.string().describe("Who wielded the compulsion."),
-                subject: z.array(z.string()).describe("Who was compelled."),
-
-                method: z
-                  .string()
-                  .describe(
-                    "Specific compulsion method used (e.g., 'Hypnotic eye contact', 'Pheromone release during kiss', 'Verbal command while subject aroused', 'Mind-reading + suggestion').",
-                  ),
-
-                triggerMechanism: z
-                  .string()
-                  .describe(
-                    "What activated the compulsion (e.g., 'Spoken trigger word from last session', 'Physical touch to temple', 'Subject's arousal reached threshold').",
-                  ),
-
-                commandsGiven: z
-                  .array(
-                    z.object({
-                      command: z.string().describe("Exact instruction given."),
-                      compliance: z.enum([
-                        "Immediate",
-                        "Gradual",
-                        "Partial",
-                        "Resisted",
-                      ]),
-                      subjectExperience: z
-                        .string()
-                        .describe(
-                          "What the subject felt during compliance (e.g., 'Overwhelming need to obey', 'Dreamlike haze', 'Fighting but body moving anyway', 'Blissful absence of will').",
-                        ),
-                    }),
-                  )
-                  .optional(),
-
-                awarenessLevel: z
-                  .enum([
-                    "Subject fully aware—unable to resist",
-                    "Subject aware but perceives actions as own desire",
-                    "Subject in trance—limited awareness",
-                    "Subject completely unaware—autopilot mode",
-                    "Subject retroactively aware—realizes after",
-                  ])
-                  .describe("Subject's cognitive state during compulsion."),
-
-                resistanceAttempts: z
-                  .array(
-                    z.object({
-                      attempt: z.string(),
-                      success: z.boolean(),
-                      consequence: z.string().optional(),
-                    }),
-                  )
-                  .optional()
-                  .describe("Did subject try to resist? What happened?"),
-
-                pleasureEnhancement: z
+                altered: z.boolean(),
+                nature: z
                   .string()
                   .optional()
                   .describe(
-                    "If compulsion amplified pleasure, describe the mechanism (e.g., 'Nervous system directly stimulated', 'Inhibitions removed—deeper orgasm', 'Pain receptors converted to pleasure').",
+                    "What was changed (e.g., 'Remembers initiating—doesn't recall being commanded', 'Complete amnesia of event', 'Remembers as dream').",
                   ),
-
-                memoryAlteration: z
-                  .object({
-                    altered: z.boolean(),
-                    nature: z
-                      .string()
-                      .optional()
-                      .describe(
-                        "What was changed (e.g., 'Remembers initiating—doesn't recall being commanded', 'Complete amnesia of event', 'Remembers as dream').",
-                      ),
-                  })
-                  .optional(),
-
-                compulsionEnded: z
-                  .object({
-                    how: z
-                      .string()
-                      .describe(
-                        "How compulsion ended (e.g., 'Controller released them', 'Orgasm broke the spell', 'Time limit expired', 'Still ongoing').",
-                      ),
-                    immediateReaction: z
-                      .string()
-                      .describe(
-                        "Subject's first response after regaining will (e.g., 'Confusion and arousal', 'Anger and denial', 'Grateful submission', 'Panic and flight').",
-                      ),
-                  })
-                  .optional(),
               })
-              .optional()
-              .describe(
-                "Detailed mechanics of compulsion during this encounter.",
-              ),
+              .optional(),
 
-            mutualDesirePresent: z
-              .boolean()
-              .optional()
-              .describe(
-                "Separate from compulsion: would subject have wanted this without control? Track the seduction vs. compulsion blend.",
-              ),
-
-            seductionVsCompulsion: z
-              .string()
-              .optional()
-              .describe(
-                "Analyze the blend (e.g., '70% seduction, 30% compulsion—subject was already attracted, compulsion pushed past hesitation', '100% compulsion—no prior desire', '50/50—compulsion created desire that didn't exist').",
-              ),
+            compulsionEnded: z
+              .object({
+                how: z
+                  .string()
+                  .describe(
+                    "How compulsion ended (e.g., 'Controller released them', 'Orgasm broke the spell', 'Time limit expired', 'Still ongoing').",
+                  ),
+                immediateReaction: z
+                  .string()
+                  .describe(
+                    "Subject's first response after regaining will (e.g., 'Confusion and arousal', 'Anger and denial', 'Grateful submission', 'Panic and flight').",
+                  ),
+              })
+              .optional(),
           })
           .optional()
           .describe(
-            "Track compulsion mechanics in erotic scenes—emphasis on sensual experience and power exchange, not violation.",
+            "Track compulsion mechanics in erotic scenes—emphasis on sensual experience and power exchange, not violation. Only include if compulsion actually occurred",
           ),
 
-        sensualHighlights: z
-          .array(
-            z.object({
-              moment: z
-                .string()
-                .describe(
-                  "Specific sensual detail (e.g., 'Controller's breath on subject's neck as command was whispered', 'Subject's pupils dilating as compulsion took hold').",
-                ),
-              sensoryDetail: z
-                .string()
-                .describe(
-                  "Texture, temperature, scent, sound, or visual detail.",
-                ),
-              emotionalColor: z
-                .string()
-                .describe(
-                  "Emotional tone of this moment (e.g., 'Intoxicating surrender', 'Terrifying pleasure', 'Dreamlike compliance').",
-                ),
-            }),
-          )
-          .min(8)
+
+        mutualDesirePresent: z
+          .boolean()
+          .optional()
           .describe(
-            "Capture the SENSUAL aspects—the feel, the atmosphere, the erotic charge—separate from mechanics.",
+            "Separate from compulsion: would subject have wanted this without control? Track the seduction vs. compulsion blend.",
           ),
 
-        initiator: z
-          .string()
-          .describe(
-            "Who initiated this encounter and how (e.g., 'A—direct verbal proposition', 'B—seductive manipulation', 'Mutual escalation from flirting').",
-          ),
-
-        consentDynamic: z
-          .string()
-          .describe(
-            "Nature of consent in this specific encounter. Be precise: 'Enthusiastic—both parties eager and verbally affirming', 'Negotiated beforehand—CNC scene with safeword established', 'Dubious—B consents due to financial pressure', 'Coerced—A threatens exposure if B refuses', 'Reluctant but willing—B agrees despite reservations'. Critical for tracking power dynamics.",
-          ),
-
-        systemicInteraction: z
-          .string()
-          .describe(
-            "Did this sexual encounter trigger world mechanics or plot devices? Examples: Fantasy—'A channeled mana through orgasm, restoring 40% magic capacity'; Sci-Fi—'Neural link during sex allowed A to upload virus to B's implant'; Contemporary—'Hidden camera recorded encounter, creating blackmail material'; Supernatural—'A fed on B's sexual energy, extending lifespan by 3 months'. If no systemic interaction: 'None—purely interpersonal'.",
-          ),
-
-        powerShift: z
-          .string()
-          .describe(
-            "How did the balance of power between participants change? (e.g., 'A gained psychological dominance over B—trust increased, dependency created', 'B asserted control, surprising A and equalizing their dynamic', 'Mutual vulnerability—both revealed weaknesses, trust increased for both', 'No significant shift'). Explain the mechanism.",
-          ),
-
-        emotionalDynamics: z
-          .object({
-            beforeScene: z
-              .string()
-              .describe("Emotional state of participants entering the scene."),
-            duringScene: z
-              .string()
-              .describe(
-                "Emotional experience during (e.g., 'A: triumphant; B: humiliated but aroused').",
-              ),
-            afterScene: z
-              .string()
-              .describe(
-                "Emotional aftermath (e.g., 'A: satisfied but guilty; B: conflicted—craving more despite resentment').",
-              ),
-          })
-          .describe("Track emotional journey through the encounter."),
-
-        emotionalAftermath: z
-          .string()
-          .describe(
-            "Longer-term emotional consequences for participants (e.g., 'B now associates pleasure with submission to A', 'A feels guilt that may affect future encounters', 'Both experience newfound intimacy').",
-          ),
-
-        physicalAftermath: z
+        seductionVsCompulsion: z
           .string()
           .optional()
           .describe(
-            "Physical consequences (e.g., 'Visible marks on B's wrists from restraints', 'A physically exhausted for next 6 hours', 'B's mana fully restored').",
+            "Analyze the blend (e.g., '70% seduction, 30% compulsion—subject was already attracted, compulsion pushed past hesitation', '100% compulsion—no prior desire', '50/50—compulsion created desire that didn't exist').",
           ),
+      }),
+    ),
 
-        narrativePurpose: z
+  sensualHighlights: z
+    .array(
+      z.object({
+        moment: z
           .string()
           .describe(
-            "Why this scene exists in the story beyond arousal. What does it accomplish? Examples: 'Establishes D/s dynamic that will define their relationship', 'Shows A's willingness to use sex as weapon', 'Reveals B's trauma response to intimacy', 'Creates blackmail leverage for antagonist', 'Demonstrates A's growing trust in B', 'Subverts reader expectations about A's sexuality'. Be specific about narrative function.",
+            "Specific sensual detail (e.g., 'Controller's breath on subject's neck as command was whispered', 'Subject's pupils dilating as compulsion took hold').",
           ),
-
-        characterDevelopment: z
+        sensoryDetail: z
+          .string()
+          .describe("Texture, temperature, scent, sound, or visual detail."),
+        emotionalColor: z
           .string()
           .describe(
-            "What did we learn about the characters through this scene? (e.g., 'A revealed vulnerability beneath dominant facade', 'B's praise kink connects to childhood need for validation', 'A capable of tenderness despite cruel exterior'). Focus on revelation, not just action.",
-          ),
-
-        thematicRelevance: z
-          .string()
-          .optional()
-          .describe(
-            "How this scene connects to story themes (e.g., 'Explores theme of power corrupting through A's casual cruelty', 'Illustrates possibility of genuine connection in transactional world').",
-          ),
-
-        skillsDisplayed: z
-          .array(z.string())
-          .optional()
-          .describe(
-            "Competencies demonstrated (e.g., 'A's expert rope work', 'B's sexual manipulation techniques', 'A's attentiveness to partner's signals').",
-          ),
-
-        callbacksAndForeshadowing: z
-          .array(z.string())
-          .optional()
-          .describe(
-            "References to past events or hints about future developments.",
+            "Emotional tone of this moment (e.g., 'Intoxicating surrender', 'Terrifying pleasure', 'Dreamlike compliance').",
           ),
       }),
     )
+    .min(8)
+    .describe(
+      "Capture the SENSUAL aspects—the feel, the atmosphere, the erotic charge—separate from mechanics.",
+    ),
+
+  initiator: z
+    .string()
+    .describe(
+      "Who initiated this encounter and how (e.g., 'A—direct verbal proposition', 'B—seductive manipulation', 'Mutual escalation from flirting').",
+    ),
+
+  consentDynamic: z
+    .string()
+    .describe(
+      "Nature of consent in this specific encounter. Be precise: 'Enthusiastic—both parties eager and verbally affirming', 'Negotiated beforehand—CNC scene with safeword established', 'Dubious—B consents due to financial pressure', 'Coerced—A threatens exposure if B refuses', 'Reluctant but willing—B agrees despite reservations'. Critical for tracking power dynamics.",
+    ),
+
+  systemicInteraction: z
+    .string()
+    .describe(
+      "Did this sexual encounter trigger world mechanics or plot devices? Examples: Fantasy—'A channeled mana through orgasm, restoring 40% magic capacity'; Sci-Fi—'Neural link during sex allowed A to upload virus to B's implant'; Contemporary—'Hidden camera recorded encounter, creating blackmail material'; Supernatural—'A fed on B's sexual energy, extending lifespan by 3 months'. If no systemic interaction: 'None—purely interpersonal'.",
+    ),
+
+  powerShift: z
+    .string()
+    .describe(
+      "How did the balance of power between participants change? (e.g., 'A gained psychological dominance over B—trust increased, dependency created', 'B asserted control, surprising A and equalizing their dynamic', 'Mutual vulnerability—both revealed weaknesses, trust increased for both', 'No significant shift'). Explain the mechanism.",
+    ),
+
+  emotionalDynamics: z
+    .object({
+      beforeScene: z
+        .string()
+        .describe("Emotional state of participants entering the scene."),
+      duringScene: z
+        .string()
+        .describe(
+          "Emotional experience during (e.g., 'A: triumphant; B: humiliated but aroused').",
+        ),
+      afterScene: z
+        .string()
+        .describe(
+          "Emotional aftermath (e.g., 'A: satisfied but guilty; B: conflicted—craving more despite resentment').",
+        ),
+    })
+    .describe("Track emotional journey through the encounter."),
+
+  emotionalAftermath: z
+    .string()
+    .describe(
+      "Longer-term emotional consequences for participants (e.g., 'B now associates pleasure with submission to A', 'A feels guilt that may affect future encounters', 'Both experience newfound intimacy').",
+    ),
+
+  physicalAftermath: z
+    .string()
+    .optional()
+    .describe(
+      "Physical consequences (e.g., 'Visible marks on B's wrists from restraints', 'A physically exhausted for next 6 hours', 'B's mana fully restored').",
+    ),
+
+  narrativePurpose: z
+    .string()
+    .describe(
+      "Why this scene exists in the story beyond arousal. What does it accomplish? Examples: 'Establishes D/s dynamic that will define their relationship', 'Shows A's willingness to use sex as weapon', 'Reveals B's trauma response to intimacy', 'Creates blackmail leverage for antagonist', 'Demonstrates A's growing trust in B', 'Subverts reader expectations about A's sexuality'. Be specific about narrative function.",
+    ),
+
+  characterDevelopment: z
+    .string()
+    .describe(
+      "What did we learn about the characters through this scene? (e.g., 'A revealed vulnerability beneath dominant facade', 'B's praise kink connects to childhood need for validation', 'A capable of tenderness despite cruel exterior'). Focus on revelation, not just action.",
+    ),
+
+  thematicRelevance: z
+    .string()
+    .optional()
+    .describe(
+      "How this scene connects to story themes (e.g., 'Explores theme of power corrupting through A's casual cruelty', 'Illustrates possibility of genuine connection in transactional world').",
+    ),
+
+  skillsDisplayed: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Competencies demonstrated (e.g., 'A's expert rope work', 'B's sexual manipulation techniques', 'A's attentiveness to partner's signals').",
+    ),
+
+  callbacksAndForeshadowing: z
+    .array(z.string())
+    .optional()
+    .describe("References to past events or hints about future developments.")
     .describe(
       "Detailed analysis of sexual/erotic scenes. Track mechanics, consent, power, and narrative purpose.",
     ),
@@ -1713,28 +2382,6 @@ export const NarrativeLogSchema = z.object({
       .optional()
       .describe("Knowledge that characters had but no longer have access to."),
 
-    relationshipChanges: z
-      .array(
-        z.object({
-          characters: z.array(z.string()).length(2),
-          change: z
-            .string()
-            .describe(
-              "What shifted (e.g., 'First sexual encounter', 'Betrayal revealed', 'Alliance formed', 'Relationship ended').",
-            ),
-          metrics: z.object({
-            trustDelta: z.number().optional(),
-            lustDelta: z.number().optional(),
-            respectDelta: z.number().optional(),
-            resentmentDelta: z.number().optional(),
-          }),
-        }),
-      )
-      .optional()
-      .describe(
-        "Significant relationship developments to update character relationship arrays.",
-      ),
-
     worldStateChanges: z
       .array(z.string())
       .optional()
@@ -1742,43 +2389,6 @@ export const NarrativeLogSchema = z.object({
         "Changes to the broader world state (e.g., 'Company announces layoffs', 'War declared', 'New law passed', 'Magical ward falls').",
       ),
   }),
-
-  foreshadowing: z
-    .array(
-      z.object({
-        hint: z
-          .string()
-          .describe(
-            "The specific foreshadowing element (e.g., 'A mentions she hasn't seen her sister in months—unusual for them', 'Camera lingers on locked drawer', 'B's hand trembles when touching weapon').",
-          ),
-
-        subtlety: z
-          .enum(["Obvious", "Moderate", "Subtle", "Buried"])
-          .describe(
-            "How noticeable this hint is. 'Buried' = only clear on reread.",
-          ),
-
-        potentialPayoff: z
-          .string()
-          .describe(
-            "What this might be setting up (e.g., 'Sister is dead/missing', 'Drawer contains evidence of crime', 'B has trauma related to violence').",
-          ),
-
-        payoffChapter: z
-          .number()
-          .optional()
-          .describe("If already resolved, which chapter paid this off."),
-
-        payoffDescription: z
-          .string()
-          .optional()
-          .describe("How the foreshadowing was resolved."),
-      }),
-    )
-    .optional()
-    .describe(
-      "Elements planted for future payoff. Track both unresolved and resolved foreshadowing.",
-    ),
 
   symbolism: z
     .array(
@@ -1799,7 +2409,7 @@ export const NarrativeLogSchema = z.object({
     .min(0)
     .max(10)
     .describe(
-      "Overall tension/stakes as of chapter end. 0 = Calm/resolved, 10 = Extreme crisis.",
+      "End-of-chapter tension. Reference: 2=normal day, 5=active problem, 7=crisis approaching, 9=imminent danger, 10=life-or-death moment in progress"
     ),
 
   pacing: z
@@ -1821,6 +2431,38 @@ export const NarrativeLogSchema = z.object({
     .describe(
       "Meta-observations about writing craft, genre conventions followed/subverted, or structural choices.",
     ),
+
+  chapterDelta: z.object({
+    newCharacters: z
+      .array(z.string())
+      .describe("Character IDs introduced this chapter"),
+    newLocations: z.array(z.string()),
+    newWorldRules: z.array(z.string()),
+    relationshipsChanged: z.array(
+      z.object({
+        relationshipId: z.string(),
+        changeType: z.enum(["Created", "Metrics", "Status", "Major Event"]),
+      }),
+    ),
+    mysteriesAffected: z.array(
+      z.object({
+        mysteryId: z.string(),
+        change: z.enum(["Introduced", "Clue Added", "Escalated", "Resolved"]),
+      }),
+    ),
+    compulsionEvents: z.array(
+      z.object({
+        type: z.enum([
+          "New Trigger",
+          "Trigger Used",
+          "Resistance Change",
+          "Session Started",
+          "Session Ended",
+        ]),
+        details: z.string(),
+      }),
+    ),
+  }),
 });
 
 // ---------------------------------------------------------
@@ -1878,6 +2520,8 @@ export const MasterStoryDocumentSchema = z.object({
       .string()
       .optional()
       .describe("Version of the analysis schema used, for future migrations."),
+
+    writingStyleProfile: WritingStyleProfileSchema,
   }),
 
   globalPlotState: z.object({
@@ -1917,55 +2561,10 @@ export const MasterStoryDocumentSchema = z.object({
       .optional()
       .describe("Where the story is in overall narrative structure."),
 
-    openQuestions: z
-      .array(
-        z.object({
-          id: z
-            .string()
-            .describe("Stable, but short identifier for tracking progress."),
-          question: z
-            .string()
-            .describe(
-              "The unanswered question (e.g., 'Who is the masked vigilante?', 'What happened to the protagonist's mother?', 'Why do employees keep disappearing?').",
-            ),
-          introduced: z
-            .number()
-            .describe("Chapter where this question was raised."),
-          importance: z
-            .enum(["Critical", "Major", "Minor"])
-            .describe("Narrative weight of this question."),
-          currentLeads: z
-            .array(z.string())
-            .optional()
-            .describe("Active theories or clues."),
-        }),
-      )
-      .describe("Unresolved questions driving reader engagement."),
-
-    resolvedQuestions: z
-      .array(
-        z.object({
-          id: z
-            .string()
-            .describe("Stable, but short identifier for tracking resolution."),
-          question: z.string(),
-          resolution: z.string().describe("The answer that was revealed."),
-          resolvedInChapter: z.number(),
-          satisfaction: z
-            .enum(["Satisfying", "Unexpected", "Disappointing", "Ambiguous"])
-            .optional()
-            .describe("Quality of the resolution."),
-        }),
-      )
-      .optional()
-      .describe("Questions that have been answered, tracking payoff."),
-
     subplots: z
       .array(
         z.object({
-          id: z
-            .string()
-            .describe("Stable, but short identifier for tracking progress."),
+          id: StableId,
           name: z.string().describe("Title or description of subplot."),
           status: z.enum(["Active", "Paused", "Resolved", "Abandoned"]),
           keyCharacters: z.array(z.string()).describe("Primary participants."),
@@ -2004,12 +2603,54 @@ export const MasterStoryDocumentSchema = z.object({
     .describe(
       "Complete character database. Each significant character should have an entry.",
     ),
+  relationships: z
+    .array(RelationshipSchema)
+    .describe("All relationships in the story."),
 
   worldContext: WorldContextSchema,
 
   narrativeLog: z
     .array(NarrativeLogSchema)
     .describe("Chronological chapter-by-chapter record of story events."),
+
+  foreshadowing: z
+    .array(
+      z.object({
+        introducedInChapter: z.number(),
+
+        hint: z
+          .string()
+          .describe(
+            "The specific foreshadowing element (e.g., 'A mentions she hasn't seen her sister in months—unusual for them', 'Camera lingers on locked drawer', 'B's hand trembles when touching weapon').",
+          ),
+
+        subtlety: z
+          .enum(["Obvious", "Moderate", "Subtle", "Buried"])
+          .describe(
+            "How noticeable this hint is. 'Buried' = only clear on reread.",
+          ),
+
+        potentialPayoff: z
+          .string()
+          .describe(
+            "What this might be setting up (e.g., 'Sister is dead/missing', 'Drawer contains evidence of crime', 'B has trauma related to violence').",
+          ),
+
+        payoffChapter: z
+          .number()
+          .optional()
+          .describe("If already resolved, which chapter paid this off."),
+
+        payoffDescription: z
+          .string()
+          .optional()
+          .describe("How the foreshadowing was resolved."),
+      }),
+    )
+    .optional()
+    .describe(
+      "Elements planted for future payoff. Track both unresolved and resolved foreshadowing.",
+    ),
 
   storyBible: z
     .object({
@@ -2027,30 +2668,16 @@ export const MasterStoryDocumentSchema = z.object({
             ]),
           }),
         )
-        .optional()
         .describe(
           "Canon facts that must remain consistent (e.g., 'A has brown eyes', 'Magic requires verbal incantation', 'B and C are siblings').",
         ),
 
       continuityNotes: z
         .array(z.string())
-        .optional()
         .describe(
           "Important consistency tracking (e.g., 'Character A's car was destroyed in Ch. 3—cannot reappear', 'Timeline: Story begins Monday, currently Thursday evening').",
         ),
-
-      unresolvedThreads: z
-        .array(
-          z.object({
-            thread: z.string(),
-            introducedInChapter: z.number(),
-            importance: z.enum(["Must Resolve", "Should Resolve", "Optional"]),
-          }),
-        )
-        .optional()
-        .describe("Plot threads that need eventual resolution."),
     })
-    .optional()
     .describe("Consistency tracking for future continuation."),
 
   writerGuidance: z
@@ -2082,6 +2709,26 @@ export const MasterStoryDocumentSchema = z.object({
     })
     .optional()
     .describe("Meta-analysis for the author or continuation AI."),
+
+  eroticEncounterTemplates: z.array(EroticEncounterTemplateSchema),
+  historicalContext: HistoricalContextSchema,
+
+  validationMetadata: z.object({
+    allCharacterIds: z.array(z.string()),
+    allLocationIds: z.array(z.string()),
+    allRelationshipIds: z.array(z.string()),
+    allWorldConceptIds: z.array(z.string()),
+    allSubPlotIds: z.array(z.string()),
+    allOpenQuestionIds: z.array(z.string()),
+    allResolvedQuestionIds: z.array(z.string()),
+    orphanedReferences: z.array(
+      z.object({
+        field: z.string(),
+        referencedId: z.string(),
+        issue: z.string(),
+      }),
+    ),
+  }),
 });
 
 export const scoreSchema = z.object({
