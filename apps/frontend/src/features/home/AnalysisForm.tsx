@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { InputType } from '@/types/story';
 import { StoryDataHandlers } from '@/features/home/hooks/useStoryData';
@@ -8,6 +8,7 @@ import { FullPageLoader } from '@/components/FullPageLoader'; // The inline spin
 import { FaFileUpload, FaFont, FaLink } from 'react-icons/fa';
 import { AnalysisRequest, UserChapterData, UserStoryData } from '@story-generation/types';
 import { TextInputForm } from './TextInputForm';
+import { ChapterSelection } from './ChapterSelection';
 import { startAnalysisJob } from '@/lib/api';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 // Stub out the other forms for now
@@ -35,7 +36,14 @@ export function AnalysisForm({
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState(''); // State for other forms
   const [files, setFiles] = useState<FileList | null>(null); // State for other forms
+  const [selectedChapters, setSelectedChapters] = useState<number[]>([]);
   const router = useRouter();
+
+  useEffect(() => {
+    if (activeStory && activeStory.chapters) {
+      setSelectedChapters(activeStory.chapters.map((c) => c.number));
+    }
+  }, [activeStory]);
 
   if (!process.env.NEXT_PUBLIC_API_URL) {
     throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
@@ -48,6 +56,10 @@ export function AnalysisForm({
       setError('No active story to analyze.');
       return;
     }
+    if (selectedChapters.length === 0) {
+      setError('Please select at least one chapter to analyze.');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -58,6 +70,7 @@ export function AnalysisForm({
       if (inputType === 'text') {
         jobPayload = {
           storyId: activeStoryId,
+          lastChapterNumber: Math.max(...selectedChapters),
         };
       } else if (inputType === 'link') {
         throw new Error('Link input is not yet implemented');
@@ -161,6 +174,14 @@ export function AnalysisForm({
 
       {/* --- Rendered Input --- */}
       <div className="pt-4">{renderInputType()}</div>
+
+      {activeStory && activeStory.chapters.length > 0 && (
+        <ChapterSelection
+          chapters={activeStory.chapters}
+          selectedChapters={selectedChapters}
+          onSelectedChaptersChange={setSelectedChapters}
+        />
+      )}
 
       {error && (
         <div className="p-4 bg-red-100 border border-red-300 rounded-lg text-red-800">

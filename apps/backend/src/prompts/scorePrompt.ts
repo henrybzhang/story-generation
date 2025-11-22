@@ -1,5 +1,5 @@
 import type { MasterStoryDocument } from "@story-generation/types";
-import { kinkLexicon } from "./directPrompt.js";
+import { kinkLexicon } from "./extraPrompts";
 
 export const judgeMasterDocumentPrompt = (
   sourceText: string,

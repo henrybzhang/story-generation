@@ -1,13 +1,12 @@
 import z from "zod";
-import type { ChapterSummary } from "./schemas/indirect";
-import type { MasterStoryDocument, Score } from "./schemas/v1";
+import type { ChapterSummary } from "./schemas/chapterSummarySchema";
+import type { MasterStoryDocument, Score } from "./schemas/masterSchema";
 
-export * from "./schemas/indirect";
-export * from "./schemas/v1";
+export * from "./schemas/chapterSummarySchema";
+export * from "./schemas/masterSchema";
 
 // --- 1. Zod Schemas as Single Source of Truth ---
 export enum AnalysisMethod {
-  DIRECT = "direct",
   INDIRECT = "indirect",
 }
 
@@ -34,6 +33,7 @@ export type UserStoryData = {
 
 export type AnalysisRequest = {
   storyId: string;
+  lastChapterNumber: number;
 };
 
 export type AnalysisJobSimpleData = {
@@ -57,12 +57,6 @@ export type IndirectChapterAnalysisData = BaseAnalysisData & {
   };
 };
 
-export type DirectChapterAnalysisData = BaseAnalysisData & {
-  analysis: {
-    masterStoryDocument: MasterStoryDocument;
-  };
-};
-
 // Base type for a job
 type BaseAnalysisJobData = {
   id: string;
@@ -77,16 +71,8 @@ export type IndirectAnalysisJobData = BaseAnalysisJobData & {
   };
 };
 
-export type DirectAnalysisJobData = BaseAnalysisJobData & {
-  method: AnalysisMethod.DIRECT;
-  storyAnalysis: {
-    id: string;
-    chapterAnalyses: DirectChapterAnalysisData[];
-  };
-};
-
 // Final discriminated union type
-export type AnalysisJobData = IndirectAnalysisJobData | DirectAnalysisJobData;
+export type AnalysisJobData = IndirectAnalysisJobData;
 
 // --- 4. Generic Helper Types ---
 export type AnalysisResult<T> =

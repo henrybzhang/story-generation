@@ -5,10 +5,10 @@ import { AppError } from "@/src/middleware/AppError.js";
 import { processAnalysisJob } from "@/src/services/analysisService.js";
 
 export const startAnalysisJobs = async (req: Request, res: Response) => {
-  const { storyId } = req.body as AnalysisRequest;
+  const { storyId, lastChapterNumber } = req.body as AnalysisRequest;
   try {
     const jobs = await Promise.allSettled([
-      processAnalysisJob(storyId, AnalysisMethod.INDIRECT),
+      processAnalysisJob(storyId, AnalysisMethod.INDIRECT, lastChapterNumber),
       // processAnalysisJob(storyId, AnalysisMethod.DIRECT),
     ]);
 
@@ -34,37 +34,21 @@ export const getAnalysisJobData = async (req: Request, res: Response) => {
   const { jobId } = req.params;
 
   if (!jobId) {
-    // Or return null, or handle the error as appropriate for your app
     throw new AppError("No job ID provided", 400);
   }
 
   try {
-    const job = await prisma.analysisJob.findUnique({
-      where: {
-        id: jobId,
-      },
-      select: {
-        id: true,
-        status: true,
-        method: true,
-        storyAnalysis: {
-          select: {
-            id: true,
-            chapterAnalyses: {
-              select: {
-                id: true, // Good for error logging
-                analysis: true,
-                score: true,
-                chapterData: {
-                  select: {
-                    number: true,
+    const analysisJob = await prisma.analysisJob.findUnique({
+      where: { id: jobId },
+      include: {
+        storyData: {
+          include: {
+            chapters: {
+              include: {
+                chapterAnalysis: {
+                  include: {
+                    storyAnalysis: true,
                   },
-                },
-              },
-              orderBy: {
-                // Optional: Good practice to ensure order
-                chapterData: {
-                  number: "asc",
                 },
               },
             },
@@ -73,43 +57,51 @@ export const getAnalysisJobData = async (req: Request, res: Response) => {
       },
     });
 
-    if (!job) {
+    if (!analysisJob) {
       throw new AppError("Job not found", 404, { jobId });
     }
 
-    if (!job.storyAnalysis || !job.storyAnalysis.chapterAnalyses) {
-      throw new AppError("Job is missing critical analysis data.", 500, {
-        jobId,
-      });
-    }
-
-    const transformedChapters = job.storyAnalysis.chapterAnalyses.map(
-      (chapter) => {
-        const { chapterData, ...rest } = chapter;
-
-        return {
-          ...rest,
-          number: chapterData.number,
-        };
-      },
+    const allChapterAnalyses = analysisJob.storyData.chapters.flatMap(
+      (c) => c.chapterAnalysis,
     );
 
-    const reshapedJob = {
-      ...job,
-      storyAnalysis: {
-        ...job.storyAnalysis,
-        chapterAnalyses: transformedChapters,
-      },
-    };
+    if (allChapterAnalyses.length === 0) {
+      const { storyData, ...analysisJobFields } = analysisJob;
+      return res
+        .status(200)
+        .json({ ...analysisJobFields, chapterAnalyses: [] });
+    }
 
-    res.status(200).json(reshapedJob);
+    const latestStoryAnalysis = allChapterAnalyses.reduce((latest, current) => {
+      if (
+        !latest ||
+        current.storyAnalysis.promptVersion > latest.storyAnalysis.promptVersion
+      ) {
+        return current;
+      }
+      return latest;
+    }).storyAnalysis;
+
+    const chapterAnalyses = allChapterAnalyses
+      .filter((a) => a.storyAnalysisId === latestStoryAnalysis.id)
+      .map((analysis) => {
+        const chapter = analysisJob.storyData.chapters.find(
+          (c) => c.id === analysis.chapterDataId,
+        );
+        return {
+          chapterNumber: chapter?.number,
+          analysis: analysis.analysis,
+        };
+      });
+
+    const { storyData, ...analysisJobFields } = analysisJob;
+
+    res.status(200).json({ ...analysisJobFields, chapterAnalyses });
   } catch (error) {
     const cause = error instanceof Error ? error : new Error(String(error));
-    // Re-throwing AppError is fine if you have middleware to catch it
     if (error instanceof AppError) {
       throw error;
     }
-    // Otherwise, wrap it
     throw new AppError("Failed to fetch job data", 500, { jobId }, cause);
   }
 };

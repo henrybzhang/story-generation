@@ -28,13 +28,15 @@ model AnalysisJob {
   status    AnalysisJobStatus @default(PENDING)
 
   method    String
-  modelName String
-  promptVersion String
+  modelName String @default("x-ai/grok-4-fast")
 
   storyData StoryData @relation(fields: [storyDataId], references: [id], onDelete: Cascade)
   storyDataId String
 
-  storyAnalysis StoryAnalysis?
+  lastChapterNumber Int
+
+  masterDocument Json?
+  promptVersion Int
 }
 
 model StoryAnalysis {
@@ -42,10 +44,12 @@ model StoryAnalysis {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  chapterAnalyses ChapterAnalysis[]
+  storyData StoryData @relation(fields: [storyDataId], references: [id], onDelete: Cascade)
+  storyDataId String
 
-  analysisJob AnalysisJob @relation(fields: [analysisJobId], references: [id], onDelete: Cascade)
-  analysisJobId String @unique
+  promptVersion Int
+  modelName String @default("x-ai/grok-4-fast")
+  chapterAnalyses ChapterAnalysis[]
 }
 
 model ChapterAnalysis {
@@ -85,6 +89,7 @@ model StoryData {
   chapters ChapterData[]
 
   analysisJob AnalysisJob[]
+  storyAnalysis StoryAnalysis[]
 }
 
 model ChapterData {
