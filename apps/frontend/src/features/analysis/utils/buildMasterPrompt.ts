@@ -1,61 +1,56 @@
-import { AnalysisJobData, AnalysisMethod, } from '@story-generation/types';
+import { AnalysisJobData } from '@story-generation/types';
 
 /**
  * Builds the master prompt string from the analysis data.
+ * Includes the master story document from the most recent chapter
+ * and summaries of the 3 most recent chapter analyses.
  */
 export function buildMasterPrompt(
   analysis: AnalysisJobData
 ): string {
+  console.log(analysis)
   let context = `[SYSTEM]\nYou are a creative story writer. Below is the full context for a story-in-progress. Your task is to continue the story based on the user's direction.\n\n`;
 
-  if (analysis.method === AnalysisMethod.INDIRECT) {
-    // 1. Assert the type of storyAnalysis based on the method
-    const storyAnalysis = analysis.storyAnalysis;
-    context += `[STORY CONTEXT SO FAR (Indirect)]\n---\n`;
+  // Get all chapter analyses sorted by chapter number
+  const sortedChapters = [...analysis.chapterAnalyses].sort(
+    (a, b) => a.chapterNumber - b.chapterNumber,
+  );
 
-    // 2. Use the correctly-typed variable
-    const sortedChapters = [...storyAnalysis.chapterAnalyses].sort(
-      (a, b) => a.number - b.number,
-    );
-    for (const chapter of sortedChapters) {
-      context += `[CHAPTER ${chapter.number}]\n`;
-      // 3. No 'as' needed here, chapter.analysisResults is already the correct type
-      const chapterAnalysis = chapter.analysis;
-      context += `OUTLINE:\n${JSON.stringify(
-        chapterAnalysis.chapterSummary,
-        null,
-        2,
-      )}\n\n`;
-      context += `CHARACTERS:\n${JSON.stringify(
-        chapterAnalysis.masterStoryDocument,
-        null,
-        2,
-      )}\n\n`;
-      context += `---\n`;
-    }
-  } else if (analysis.method === AnalysisMethod.DIRECT) {
-    // 1. Assert the type of storyAnalysis based on the method
-    const storyAnalysis = analysis.storyAnalysis;
+  if (sortedChapters.length === 0) {
+    return context + '[No chapter analyses available]\n';
+  }
 
-    // 2. Get the last chapter (this is an object from the array, or undefined)
-    const lastChapter = [...storyAnalysis.chapterAnalyses]
-      .sort((a, b) => b.number - a.number)
-      .at(0);
+  // Add the master story document
+  context += `[MASTER STORY DOCUMENT]\n`;
+  context += `This is the comprehensive story context built from all analyzed chapters.\n\n`;
+  context += JSON.stringify(analysis.masterDocument, null, 2);
+  context += `\n\n---\n\n`;
 
-    // 3. Check for the chapter AND its results, then access the property correctly
-    if (!lastChapter || !lastChapter.analysis) {
-      return 'Error: Could not find masterStoryDocument in the latest chapter.';
-    }
+  // Get the 3 most recent chapter analyses
+  const recentChapters = sortedChapters.slice(-3);
+  
+  context += `[RECENT CHAPTER SUMMARIES]\n`;
+  context += `Below are summaries of the ${recentChapters.length} most recent chapter(s):\n\n`;
 
-    context += `[MASTER STORY DOCUMENT]\n`;
-    // 4. Access the masterStoryDocument from the (now correctly typed) analysisResults
-    context += JSON.stringify(
-      lastChapter.analysis,
-      null,
-      2,
-    );
-  } else {
-    return 'Error: Unknown analysis method.';
+  for (const chapter of recentChapters) {
+    context += `[CHAPTER ${chapter.chapterNumber}]\n`;
+    context += JSON.stringify(chapter, null, 2);
+    context += `\n\n---\n\n
+    ## Story Philosophy
+- This is erotic fiction with substantive plot and realistic characters
+- Tone is playful, sensual, and engaging - not dark or gritty
+- Characters drive the story through desires, decisions, and relationships
+- Erotic content emerges naturally from character dynamics and plot
+- Every scene serves multiple purposes (character, plot, relationships, eroticism)
+- Pacing feels natural - not every chapter requires explicit content
+
+## Writing Style
+- Clear, evocative language over purple prose
+- Show emotion through action and dialogue, not just telling
+- Engage multiple senses for immersion
+- Balance introspection with external action
+- Let important moments breathe - don't rush
+- Maintain narrative momentum while allowing character development`;
   }
 
   return context;

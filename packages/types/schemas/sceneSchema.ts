@@ -2,7 +2,10 @@ import { z } from "zod";
 
 export const SceneSchema = z.object({
   sceneNumber: z.number(),
-  locationId: z.string(),
+  sourceTextLength: z.enum(["Short", "Medium", "Long"]).describe(
+    "Approximate length of this scene in source text. Short = 400-800 words, Medium = 800-1200 words, Long = 1200+ words. Determines appropriate extraction depth."
+  ),
+  location: z.string(),
   participants: z.array(z.string()),
   purpose: z.object({
     primary: z.enum([
@@ -12,7 +15,6 @@ export const SceneSchema = z.object({
       "Mystery/revelation",
       "Relationship development",
       "World-building exposition",
-      "Transition/pacing",
       "Setup/foreshadowing",
     ]),
     secondary: z.array(z.string()).optional(),
@@ -22,16 +24,14 @@ export const SceneSchema = z.object({
   outcome: z
       .string()
       .describe(
-        "Immediate result and consequences of this scene (e.g., 'Protagonist now knows she's being surveilled', 'Trust between A and B reduced to 20').",
+        "State changes resulting from this scene in 2-4 concise sentences. Format: [Character gains/loses/learns X]. [Relationship between A-B shifts to Y]. [Plot element Z is now active/resolved]. Do NOT summarize what happened in the scene—only capture what is DIFFERENT afterward. Examples: 'Mitch learned the Cost of Knowledge rule and that revealing his nature makes him vulnerable. Lauren-Matt alliance tentatively formed with artifact deal pending. Interrupted before energy exchange completed.' or 'Sophie gained confidence after successful negotiation. Trust between Sophie-Drake increased significantly. New quest: locate the missing artifact.'"
       )
-      .min(100),
+      .max(800),
 
   summary: z
     .string()
-    .min(500)
-    .max(3500)
     .describe(
-      "200-400 word scene narrative covering PLOT AND CONTEXT ONLY. Scale length to scene complexity—simple transitions need ~200 words; complex multi-beat scenes may need ~400. Required elements: (1) Opening context—location, characters, initial state; (2) Key non-erotic events and decisions; (3) Erotic placeholder if applicable: '[EROTIC ENCOUNTER: participants, duration, outcome—see eroticContent.progression]'; (4) Consequences and closing state. CLARITY RULE: Every sentence specifies WHO performs the action. This field must convey complete plot without eroticContent."
+      "Beat-by-beat chronological account. Scale length to scene complexity: 200-300 words for short scenes, 400-600 for medium, 600-900 for long/complex scenes."
     ),
 
   // PLOT METADATA
@@ -90,9 +90,8 @@ export const SceneSchema = z.object({
         context: z.enum(["Atmosphere", "Character appearance", "Environment", "Non-sexual interaction"]),
       }),
     )
-    .min(5)
     .describe(
-      "NON-SEXUAL atmospheric details establishing mood and setting. Minimum 5. If detail relates to erotic activity, put it in eroticContent.sensualHighlights instead.",
+      "NON-SEXUAL atmospheric details establishing mood and setting. Minimum 3 details, target 5-10 details for most scenes. Include character appearance, environment, atmosphere, and non-sexual interactions. If scene is legitimately sparse (phone call, etc...), 3 is acceptable. If detail relates to erotic activity, put it in eroticContent.sensualHighlights instead.",
     ),
 
   physicalAftermath: z
@@ -126,18 +125,16 @@ export const SceneSchema = z.object({
 
       progression: z
         .string()
-        .min(400)
-        .max(4000)
         .describe(
-          "150-500 word erotic narrative. Scale to encounter intensity—brief kiss/tension needs ~150 words; extended scene needs ~400-500. DO NOT repeat setting or character descriptions from summary. STRUCTURE: [ACTOR] [VERB] [RECIPIENT/BODY PART]. Required beats: (1) Initiation—who, how, first contact; (2) Escalation—positions, techniques, sensations; (3) Power dynamics—control shifts, resistance; (4) Resolution—climax, interruption, or continuation; (5) Immediate physical aftermath. Prioritize the receiving party's sensory experience. Write as reproducible erotic narrative, not telegraphic notes."
+          "Sensual narrative of the encounter. Scale to scene length: 150-250 words for brief encounters, 300-500 for medium, 500-800 for extended scenes. If exceeding 800 words, check for missed scene breaks."
         ),
 
       pivotalMoments: z.array(z.object({
         moment: z.string().describe(
           "A concise label or title for the pivotal moment."
         ),
-        verbatimText: z.string().max(250).describe(
-          "A short, exact quote from the source text that captures this moment. Must be taken directly from the chapter without modification. Keep to 1-2 sentences maximum - choose the most impactful snippet, not the entire passage."
+        verbatimText: z.string().max(800).describe(
+          "A short, EXACT quote from the source text that captures this moment. Must be taken directly from the chapter without modification. Keep to 1-2 sentences maximum - choose the most impactful snippet, not the entire passage."
         ),
         whyPivotal: z.string().describe(
           "Explanation of why this moment matters for the story. Address how it changes character dynamics, advances the plot, shifts power balance, or establishes something that must be maintained in future chapters."
@@ -147,11 +144,12 @@ export const SceneSchema = z.object({
       ),
 
       verbatimEroticText: z
-        .array(z.string().min(10).max(250))
-        .min(15)
-        .max(30)
+        .array(z.string())
         .describe(
-          "Extract 15-30 exact sentences that capture the erotic writing style. REQUIRED: Include lines showing (1) physical sensations, (2) power dynamics, (3) character reactions, (4) psychological states, (5) moments of resistance or surrender. These will help continuation LLM match tone.",
+          "Verbatim erotic sentences or short quotes. " +
+          "Extract ONLY sentences containing explicit sexual acts, arousal, or intimate sexual touching. " +
+          "Each array entry is a single sentence or brief quote (typically 10-30 words). " +
+          "DO NOT include context, setup, or non-sexual physical contact."
         ),
 
       // Mechanics & Dynamics
@@ -257,7 +255,7 @@ export const SceneSchema = z.object({
             activationMechanism: z
               .string()
               .describe(
-                "Exact description of how compulsion was activated (preserve original phrasing).",
+                "EXACT description of how compulsion was activated (preserve original phrasing).",
               ),
 
             commands: z.array(

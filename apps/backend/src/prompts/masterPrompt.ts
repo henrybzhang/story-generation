@@ -1,8 +1,8 @@
-import type { ChapterSummary } from "@story-generation/types";
+import type { ChapterAnalysis } from "@story-generation/types";
 import { CHARACTERS_TO_IGNORE } from "./extraPrompts";
 
 export const createMasterStoryDocPrompt = (
-  chapterAnalyses: ChapterSummary[],
+  chapterAnalyses: ChapterAnalysis[],
 ) => {
   return `
 ## MASTER STORY DOCUMENT "CREATION"

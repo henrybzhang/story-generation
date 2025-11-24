@@ -12,5 +12,6 @@ Luna
 Pike
 Alyssa
 Chris
+Samantha
 </CHARACTERS_TO_IGNORE>
 `;

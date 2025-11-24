@@ -1,6 +1,8 @@
 import { UserChapterData, UserStoryData } from '@story-generation/types';
 import { BASE_URL } from './api';
 
+type UserChapterDataNoID = Omit<UserChapterData, 'id'>;
+
 /**
  * A robust helper for handling fetch responses.
  * It handles both successful (ok: true) and error (ok: false) responses.
@@ -37,7 +39,7 @@ export async function fetchStories(): Promise<UserStoryData[]> {
  */
 export async function createStory(
   name: string,
-  chapters: UserChapterData[]
+  chapters: UserChapterDataNoID[]
 ): Promise<UserStoryData> {
   const response = await fetch(`${BASE_URL}/stories`, {
     method: 'POST',

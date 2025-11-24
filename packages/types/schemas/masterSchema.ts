@@ -77,7 +77,7 @@ export const WritingStyleProfileSchema = z.object({
     .min(5)
     .max(10)
     .describe(
-      "Curated examples of author's voice for AI continuation reference",
+      "5 - 10 curated examples of author's voice for AI continuation reference",
     ),
 });
 
@@ -102,10 +102,10 @@ export const EroticEncounterTemplateSchema = z.object({
   participants: z.array(z.string()).describe("Characters typically involved"),
 
   typicalStructure: z.object({
-    initiation: z.string().describe("How these encounters typically begin").min(100),
-    escalation: z.string().describe("Common progression pattern").min(100),
-    climaxPattern: z.string().describe("How the peak typically unfolds").min(100),
-    resolution: z.string().describe("Common aftermath/conclusion").min(100),
+    initiation: z.string().describe("How these encounters typically begin"),
+    escalation: z.string().describe("Common progression pattern"),
+    climaxPattern: z.string().describe("How the peak typically unfolds"),
+    resolution: z.string().describe("Common aftermath/conclusion"),
   }),
 
   commonElements: z.object({

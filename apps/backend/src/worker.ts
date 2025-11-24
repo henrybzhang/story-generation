@@ -8,13 +8,11 @@ import { Worker } from "bullmq";
 import { prisma } from "./lib/prisma.js";
 import { redisConnection } from "./lib/redisConnection.js";
 import { analyzeChapterIndirectly } from "./services/analysisService.js";
+import { log } from "./utils/logging.js";
 
 interface JobData {
   jobId: string;
 }
-
-const log = (jobId: string, message: string) =>
-  console.log(`[${new Date().toISOString()}] [JOB ${jobId}] ${message}`);
 
 const worker = new Worker<JobData>(
   "story-analysis",

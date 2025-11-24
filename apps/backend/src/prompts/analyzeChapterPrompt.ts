@@ -9,15 +9,162 @@ Your ONLY job is **EXTRACTION and PRESERVATION**—not interpretation, not analy
 
 ---
 
-## BEFORE YOU BEGIN - CHAPTER OVERVIEW
+## MANDATORY SCENE PLANNING PHASE
 
-1. Read the full chapter first
-2. Count natural scene breaks (location/time/purpose shifts)
-3. Identify all erotic sequences
-4. Note any compulsion indicators
-5. Estimate quote/sensory detail targets
+**CRITICAL: Complete this planning phase in your thinking/reasoning before generating final output.**
 
-THEN begin extraction.
+---
+
+## PHASE 1: INITIAL ASSESSMENT
+
+### Read-Through Checklist
+
+- Read the entire chapter completely
+- Note total word count
+- Identify all location changes
+- Identify all time jumps
+- Identify POV shifts (if any)
+
+---
+
+## PHASE 2: SCENE DEFINITION CRITERIA
+
+### What Constitutes a Scene
+
+A scene is a **complete narrative unit** with ALL of:
+
+- Clear beginning, middle, and end
+- At least 300 words of source text
+- A primary purpose driving the action
+- Sufficient content for 3+ plot beats
+- Sufficient content for 3+ meaningful quotes
+
+### When to Start a New Scene
+
+Start a new scene ONLY for **substantial shifts** in:
+
+1. **Location** - Meaningfully different settings
+    - ✅ Kitchen → Library
+    - ❌ Bedroom → En-suite bathroom
+2. **Time** - Clear time jumps
+    - ✅ "Three hours later..."
+    - ❌ "A few moments later"
+3. **POV** - Narrative perspective changes to different character
+4. **Central Purpose** - Scene's primary function changes fundamentally
+
+### Special Rules for Erotic Scenes
+
+Within erotic encounters, start new scene ONLY for:
+
+- Blackouts/loss of consciousness (new scene when awareness returns)
+- Partner changes or additions
+- Significant pauses with substantive dialogue/negotiation (multiple paragraphs of non-erotic content)
+- Explicit scene dividers in source text (---, ***, etc.)
+
+### What Does NOT Warrant a New Scene
+
+- Position changes during continuous activity
+- Multiple orgasms without extended pause
+- Brief dirty talk during continuous action
+- Brief conclusions, exits, or transitions
+- Cleanup and departure after erotic activity
+- Walking between locations without substantial events
+- Character entering/exiting a space
+
+**Rule: Brief transitions and conclusions belong to the scene they follow from.**
+
+If a segment meets ALL these criteria, merge it into the adjacent scene:
+
+- Under 300 words
+- Primarily transition content (cleanup, leaving, brief farewell)
+- Fewer than 3 meaningful plot beats
+- Would struggle to produce 3 substantive quotes
+
+**Examples:**
+
+- ✅ MERGE: "Maddie winks, unlocks door, leaves. Sam follows."
+- ✅ MERGE: "He cleaned up, thanked her, and headed home."
+- ✅ MERGE: Brief goodbyes after conversation
+- ❌ SEPARATE: Extended reflection during walk home with new information
+- ❌ SEPARATE: Character encounters someone new during transition
+- ❌ SEPARATE: Significant internal revelation during travel
+
+---
+
+## PHASE 3: IDENTIFY POTENTIAL BREAKS
+
+For each potential scene break, document:
+
+**Break Point:** "After paragraph starting with '[first few words]...'"
+
+**Segment Word Count:** ~X words
+
+**Break Reason:** (Location change / Time jump / POV shift / Purpose shift)
+
+**Before Break:** [1 sentence description]
+
+**After Break:** [1 sentence description]
+
+---
+
+## PHASE 4: VALIDATE EACH SEGMENT
+
+For EACH identified segment, complete all checks:
+
+### Content Validation Checklist
+
+□ Is this 300+ words?
+□ Can I identify 3+ distinct plot beats?
+□ Can I identify 5+ sensory details (appearance, environment, atmosphere, non-sexual interaction)?
+□ Can I identify 3+ meaningful quotes?
+□ Does it have clear beginning, middle, AND end?
+□ Is it truly standalone (flashback, POV shift, time jump)?
+
+### Break Point Validation
+
+□ Is the break SUBSTANTIAL (major location/time/POV/purpose change)?
+□ NOT just a minor transition or continuation?
+
+---
+
+## PHASE 5: FINALIZE SCENE STRUCTURE
+
+List your final validated scenes:
+
+**Scene 1:** [Location] - [~X words] - [Primary Purpose]
+
+- **Break Rationale:** [Why this scene starts here]
+
+**Scene 2:** [Location] - [~X words] - [Primary Purpose]
+
+- **Break Rationale:** [Why this scene starts here]
+
+[Continue for all scenes...]
+
+---
+
+## PHASE 6: SPECIAL VALIDATION CHECKS
+
+### For Long Scenes (1500+ words)
+
+□ Checked for hard breaks (blackouts, partner changes, extended interruptions)?
+□ Confirmed this continuous sequence shouldn't be split?
+
+### For Multiple Short Scenes (3+ scenes of 300-600 words each)
+
+□ Are these truly separate purposes, or continuous action over-split?
+□ Should any be merged?
+
+### For Erotic Content
+
+□ Kept continuous sexual encounters together unless hard break occurred?
+□ Avoided splitting on position changes or brief pauses?
+
+---
+
+## AFTER PLANNING - BEGIN EXTRACTION
+
+ONLY after completing the planning phase above should you begin extracting content into the schema format.
 
 ---
 
@@ -71,17 +218,6 @@ If you're at word limits, preserve items higher on this list.
 
 ---
 
-### SCENE BREAKING RULES:
-- New scene = location change OR time jump OR significant topic/purpose shift
-- EROTIC SEQUENCES: Break into separate scenes when:
-  * Setup/negotiation (Scene A)
-  * Erotic activity itself (Scene B) 
-  * Immediate aftermath/discussion (Scene C)
-- AIM FOR: 3-6 scenes per chapter; if you have <3, look for natural breaks
-- Each scene should serve ONE primary purpose
-
----
-
 ### EROTIC CONTENT
 
 **CRITICAL DECISION: When to populate \`eroticContent\`**
@@ -113,7 +249,12 @@ Only populate \`eroticContent\` when the scene contains **physical sexual/erotic
 - "Tease and Denial" = active teasing/denial happening NOW
 - "Power Exchange" = actual power being exercised (not just normal flirting)
 
-**Progression (300-500 words for substantial scenes):**
+**Progression (scale to scene length):**
+- Short erotic scenes (<500 words source): 150-250 words
+- Medium erotic scenes (500-1000 words source): 300-500 words  
+- Long erotic scenes (1000+ words source): 500-800 words
+
+If a scene is so long that 800 words cannot capture it adequately, this is a signal to check for missed scene breaks (blackouts, pauses, phase shifts).
 
 You are writing a SENSUAL NARRATIVE, not a checklist. Include:
 
@@ -134,14 +275,19 @@ You are writing a SENSUAL NARRATIVE, not a checklist. Include:
 WRITE AS IF DESCRIBING THE SCENE TO SOMEONE WHO NEEDS TO RECREATE IT.
 
 **GOOD Erotic Progression:**
-"Heather began with oral, maintaining eye contact. John moaned helplessly. She added both hands - one on shaft, one on balls - 'working everything in unison.' John recognized he was close and asked her to slow down. She pulled her mouth off but kept her hands moving, asking innocently if it didn't feel good. He admitted it felt 'really good.' She smiled - amused but gentle - and said 'Let me play with it a bit longer.' She resumed 'faster, more urgently than before,' looking 'determined' like she was 'trying to make me blow my load.' John tried to resist but warned her again. She pulled her mouth off, still stroking, and said 'don't cum yet' with 'a little smile' while her hands moved 'relentlessly.' John tried to warn her he was close but couldn't finish the sentence. She responded with feigned innocence ('Oh -- is this still too fast?') and 'a few more pumps' pushed him over. He came across her face, neck, and chest while she 'pumped the load out' expertly."
+"Heather began with oral, maintaining eye contact. John moaned helplessly. She added both hands - one on shaft, one on balls - 'working everything in unison.' John recognized he was close and asked her to slow down. She pulled her mouth off but kept her hands moving, asking innocently if it didn't feel good. He admitted it felt 'really good.' She smiled - amused but gentle - and said 'Let me play with it a bit longer.' She resumed 'faster, more urgently than before,' looking 'determined' like she was 'trying to make me blow my load.' John tried to resist but warned her again. She pulled her mouth off, still stroking, and said 'don't cum yet' with 'a little smile' while her hands moved 'relentlessly.' John tried to warn her he was close but couldn't finish the sentence. She responded with feigned innocence ('Oh -- is this still too fast?') and 'a few more pumps' pushed him over. He came across her face, neck, and chest while she 'pumped the load out' expertly. She cleaned up with a nearby towel, gave him a knowing smile, and slipped out of the room, leaving him catching his breath on the bed."
 
 **BAD Erotic Progression:**
 "They had oral sex and he came quickly." ← Too brief, no detail
 
 **If the scene has less than 200 words of erotic detail to extract, it probably shouldn't have \`eroticContent\` populated.**
 
-**Verbatim Erotic Text (Aim for 15-25 excerpts):**
+**Verbatim Erotic Text:**
+- Extract 5-15 individual sentences depending on chapter erotic content
+- Each entry should be ONE sentence or ONE short quote (10-30 words typical)
+- Select the most explicitly sexual/erotic sentences
+- Skip setup, context, transitions between erotic moments
+
 ONLY extract sentences that contain:
 ✅ Physical sensations during sex ("slick heat wrapped around," "tongue traced")
 ✅ Dirty talk/sexual communication
@@ -157,6 +303,7 @@ ONLY extract sentences that contain:
 - General exclamations
 - Character appearance outside erotic context
 - Transition sentences
+- Single words like 'More' or 'Please'
 
 QUALITY TEST: "Could this sentence appear in an erotic novel's sex scene?"
 If NO → don't extract it.
@@ -253,9 +400,52 @@ STATE EXACT TEXTUAL PROOF:
 
 ---
 
+## CHARACTER DATA
+
+### CHARACTER ACTIONS - SPECIFICITY REQUIREMENTS
+
+The \`actions\` field must be concrete and include full context:
+
+**FORMAT: [ACTION VERB] [TARGET/RECIPIENT] [METHOD/CONTEXT]**
+
+**For actions involving other characters** - ALWAYS include who:
+❌ BAD: "Rides to multiple orgasms"
+✅ GOOD: "Rides Peter to multiple orgasms (for both)"
+
+❌ BAD: "Seduces and negotiates"  
+✅ GOOD: "Seduces Emma through negotiation and sexual appeal"
+
+**For sexual/intimate actions** - Include target AND outcome:
+❌ BAD: "Performs oral"
+✅ GOOD: "Worships Molly orally with enthusiasm"
+
+❌ BAD: "Has sex"
+✅ GOOD: "Has penetrative sex with Lily on desk (interrupted)"
+
+**For solo actions** - Describe method or context:
+❌ BAD: "Departs"
+✅ GOOD: "Departs by blurring into shadows"
+
+**For conversational actions** - Include who they spoke to:
+❌ BAD: "Demands thirteen feedings"
+✅ GOOD: "Demands thirteen feedings from Sophie as payment"
+
+Extract separate actions for each distinct activity, decision point, location change, or interaction partner.
+
+### CHARACTER FILTERING
+
+${CHARACTERS_TO_IGNORE}
+
+Omit these characters from the \`characters\` array and as primary participants in \`relationships\`. They may appear in narrative context (continuity notes, location descriptions) if they impact the story.
+
+---
+
 ## EXTRACTION PRIORITIES
 
-1. **Plot Summary (400-600 words)**
+1. **Plot Summary (scale to scene length)**
+  - Short scenes: 200-300 words
+  - Medium scenes: 400-600 words
+  - Long scenes: 600-900 words
   - Beat-by-beat chronological account that someone could use to recreate the scene.
     - 1. **Opening situation** - Where characters are physically/emotionally
     - 2. **Every scene transition** - Moved from kitchen to bedroom
@@ -293,6 +483,7 @@ STATE EXACT TEXTUAL PROOF:
 
 4. **Erotic Content**
   - For ANY scene with sexual content (kissing, sexual acts, sexual tension, nudity), populate the \`eroticContent\` object. Include step-by-step progression, verbatim text, sensual highlights, dirty talk, and power dynamics.
+  - **Pivotal Moments**: Extract 3-5 key moments that future chapters might reference. For verbatimText, choose SHORT, IMPACTFUL quotes. Don't copy entire paragraphs - select the single most crucial sentence or two that captures the essence of why this moment matters.
 
 5. **Compulsion**
   - Only when supernatural control is textually evident. When in doubt, DON'T include it.
@@ -305,39 +496,29 @@ STATE EXACT TEXTUAL PROOF:
 
 ---
 
-## CHARACTER FILTERING
-
-${CHARACTERS_TO_IGNORE}
-
-Omit these characters from the \`characters\` array and as primary participants in \`relationships\`. They may appear in narrative context (continuity notes, location descriptions) if they impact the story.
-
----
-
 ## COMMON EXTRACTOR MISTAKES (Avoid These)
 
-1. **Scene summaries too brief** - Aim for 500 words, not 200
-2. **Erotic progression as outline** - Write prose narrative, not numbered lists  
-3. **Dirty talk too inclusive** - Use ALL 4 criteria, not just 1-2
-4. **Generic sensory details** - "soft skin" is vague; "smooth warmth of her inner thigh" is specific
-5. **Compulsion over-extraction** - Normal arousal ≠ supernatural compulsion
-6. **Missing power dynamics** - If one party controls pace despite protests, populate powerDynamic
-7. **Insufficient verbatim text** - 10 erotic excerpts is too few; aim for 20-25
-8. **Overlooking character decisions** - Track every choice point, even small ones
-9. **Forgetting emotional shifts** - Track arousal progressions throughout erotic scenes
-10. **Inconsistent scene breaks** - Each scene should serve ONE clear purpose
+1. **Erotic progression as outline** - Write prose narrative, not numbered lists  
+2. **Dirty talk too inclusive** - Use ALL 4 criteria, not just 1-2
+3. **Generic sensory details** - "soft skin" is vague; "smooth warmth of her inner thigh" is specific
+4. **Compulsion over-extraction** - Normal arousal ≠ supernatural compulsion
+5. **Missing power dynamics** - If one party controls pace despite protests, populate powerDynamic
+6. **Overlooking character decisions** - Track every choice point, even small ones
+7. **Forgetting emotional shifts** - Track arousal progressions throughout erotic scenes
+8. **Inconsistent scene breaks** - Each scene should serve ONE clear purpose
 
 ---
 
 ## QUALITY CONTROL CHECKLIST
 
 Before submitting, verify:
-- Plot summary is detailed and beat-by-beat
+- sceneBreakRationale explains a SUBSTANTIAL shift, not minor transition
 - All sexual/erotic scenes have \`eroticContent\` populated
 - Quotes are verbatim with proper attribution
 - Sensory details are specific, not vague
 - Compulsion instances (if any) have clear textual evidence of supernatural control
 - \`completenessScore\` ≥ 8
-
+5
 If \`completenessScore\` < 9, use \`missedElements\` to self-critique what you likely missed.
 
 ---
@@ -345,15 +526,12 @@ If \`completenessScore\` < 9, use \`missedElements\` to self-critique what you l
 ## FINAL VALIDATION (Complete BEFORE submitting)
 
 For each scene with eroticContent, verify:
-□ Progression is 300-500 words and narrative, not bullet points
-□ VerbatimEroticText has 15-30 extracts covering all required categories
-□ If power dynamic exists, powerDynamic object is populated with controlMechanics (100+ words)
+□ Progression is a detailed narrative, not bullet points
+□ If power dynamic exists, powerDynamic object is populated with controlMechanics
 □ Every resistanceAttempt has verbatim quotes for BOTH attempt and response
-□ DirtyTalk only includes lines that meet ALL 4 inclusion criteria
 □ SensualHighlights focus on EROTIC sensory, not general atmosphere
 
 For the overall chapter:
-□ Scene summaries are 400-600 words, beat-by-beat, with specific verbs
 □ CharacterAppearances includes ACTIONS (concrete verbs), not interpretations
 □ DetectedWorldRules has exactPhrasing when rules are stated in text
 □ Completeness score reflects thoroughness (9-10 = exhaustive, includes everything)
@@ -375,8 +553,6 @@ Chapter ${chapterData.number}: ${chapterData.title}
 
 ${chapterData.content}
 </ChapterText>
-
-${CHARACTERS_TO_IGNORE}
 
 ---
 

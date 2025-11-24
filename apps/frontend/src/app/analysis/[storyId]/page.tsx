@@ -8,9 +8,7 @@ import { useAnalysisData } from '@/features/analysis/hooks/useAnalysisData';
 import { FullPageLoader } from '@/components/FullPageLoader';
 import { AnalysisJobSelector } from '@/features/analysis/AnalysisJobSelector';
 import { IndirectAnalysisView } from '@/features/analysis/IndirectAnalysisView';
-import { DirectAnalysisView } from '@/features/analysis/DirectAnalysisView';
 import { buildMasterPrompt } from '@/features/analysis/utils/buildMasterPrompt';
-import { AnalysisMethod } from '@story-generation/types';
 import { deleteAnalysisJobs } from '@/lib/api';
 
 /**
@@ -142,20 +140,27 @@ function AnalysisPageContent() {
               Back to Jobs
             </button>
           </div>
+          
+          {/* Analysis Metadata */}
+          <div className="bg-white p-4 rounded-lg shadow-md border border-gray-300 mb-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-sm font-semibold text-gray-600">Model:</span>
+                <span className="ml-2 text-sm text-gray-900">{jobData.modelName}</span>
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-gray-600">Prompt Version:</span>
+                <span className="ml-2 text-sm text-gray-900">{jobData.promptVersion}</span>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-4 mb-12">
-            {jobData.method === AnalysisMethod.INDIRECT ? (
-              <IndirectAnalysisView
-                data={jobData}
-                openChapters={openChapters}
-                onToggle={handleToggleChapter}
-              />
-            ) : (
-              <DirectAnalysisView
-                data={jobData}
-                openChapters={openChapters}
-                onToggle={handleToggleChapter}
-              />
-            )}
+            <IndirectAnalysisView
+              data={jobData}
+              openChapters={openChapters}
+              onToggle={handleToggleChapter}
+            />
           </div>
 
           {/* Master Prompt Section */}

@@ -1,239 +1,238 @@
-// hooks/useStoryData.ts
-
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ACTIVE_STORY_ID_KEY } from '@/types/story';
 import { UserChapterData, UserStoryData } from '@story-generation/types';
-import * as storyApi from '@/lib/storyApi'; // Import the new API module
+import * as storyApi from '@/lib/storyApi';
 
 export type StoryDataHandlers = {
-  handleStorySwitch: (newId: string) => Promise<void>;
-  handleNewStory: () => Promise<void>;
-  handleDeleteStory: (storyId: string) => Promise<void>;
-  handleStoryNameChange: (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => Promise<void>;
-  handleAddChapter: () => Promise<void>;
-  handleRemoveChapter: (chapterNumber: number) => Promise<void>;
+  handleStorySwitch: (newId: string) => void;
+  handleNewStory: () => void;
+  handleDeleteStory: (storyId: string) => void;
+  handleStoryNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleAddChapter: () => void;
+  handleRemoveChapter: (chapterId: string) => void;
   handleChapterChange: (
-    chapterNumber: number,
+    chapterId: string,
     field: keyof UserChapterData,
     value: string
-  ) => Promise<void>;
+  ) => void;
 };
 
 export function useStoryData() {
-  const [stories, setStories] = useState<UserStoryData[]>([]);
+  const queryClient = useQueryClient();
   const [activeStoryId, setActiveStoryId] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true); // Tracks initial load
 
-  // Effect to load stories from backend on mount
+  const { data: rawStories = [], isLoading } = useQuery<UserStoryData[]>({
+    queryKey: ['stories'],
+    queryFn: storyApi.fetchStories,
+    staleTime: 1000 * 60 * 60 * 8, // 8 hours
+  });
+
+  // Ensure all stories have their chapters sorted by number
+  const stories = useMemo(() => {
+    return rawStories.map(story => ({
+      ...story,
+      chapters: [...story.chapters].sort((a, b) => a.number - b.number),
+    }));
+  }, [rawStories]);
+
   useEffect(() => {
-    async function loadData() {
-      setIsLoading(true);
-      try {
-        const storedStories = await storyApi.fetchStories();
-
-        if (storedStories.length > 0) {
-          setStories(storedStories);
-          const storedActiveId = localStorage.getItem(ACTIVE_STORY_ID_KEY);
-
-          if (
-            storedActiveId &&
-            storedStories.find((s) => s.id === storedActiveId)
-          ) {
-            setActiveStoryId(storedActiveId);
-          } else {
-            // Default to first story
-            setActiveStoryId(storedStories[0].id);
-            localStorage.setItem(ACTIVE_STORY_ID_KEY, storedStories[0].id);
-          }
-        } else {
-          // Create a default first story if backend has none
-          const newStory = await storyApi.createStory('My First Story', [
-            { number: 1, title: 'Chapter 1', content: '' },
-          ]);
-          localStorage.setItem(ACTIVE_STORY_ID_KEY, newStory.id);
-          setStories([newStory]);
-          setActiveStoryId(newStory.id);
-        }
-      } catch (error) {
-        console.error('Failed to load stories:', error);
-        // TODO: Set an error state to show in the UI
-      } finally {
-        setIsLoading(false);
+    if (stories.length > 0) {
+      const storedActiveId = localStorage.getItem(ACTIVE_STORY_ID_KEY);
+      if (storedActiveId && stories.find((s) => s.id === storedActiveId)) {
+        setActiveStoryId(storedActiveId);
+      } else {
+        const newActiveId = stories[0].id;
+        setActiveStoryId(newActiveId);
+        localStorage.setItem(ACTIVE_STORY_ID_KEY, newActiveId);
       }
     }
+  }, [stories]);
 
-    loadData();
-  }, []);
-
-  // Get the currently active story object
   const activeStory = useMemo(() => {
-    return stories.find((s) => s.id === activeStoryId);
+    const story = stories.find((s) => s.id === activeStoryId);
+    if (!story) {
+      return null;
+    }
+    // Return a new story object with chapters sorted to ensure correct render order
+    return {
+      ...story,
+      chapters: [...story.chapters].sort((a, b) => a.number - b.number),
+    };
   }, [stories, activeStoryId]);
 
-  // --- HANDLERS ---
-
-  const handleStorySwitch = useCallback(async (newId: string) => {
+  const handleStorySwitch = useCallback((newId: string) => {
     setActiveStoryId(newId);
-    // User preference is saved locally, not a backend call
     localStorage.setItem(ACTIVE_STORY_ID_KEY, newId);
   }, []);
 
-  const handleNewStory = useCallback(async () => {
-    try {
-      const newStory = await storyApi.createStory(
-        `New Story ${stories.length + 1}`,
-        [{ number: 1, title: 'Chapter 1', content: '' }]
-      );
+  const createStoryMutation = useMutation({
+    mutationFn: (newName: string) => {
+      const newChapter = {
+        id: `temp-${Date.now()}-${Math.random()}`,
+        number: 1,
+        title: 'Chapter 1',
+        content: '',
+      };
+      // We only send what the backend expects
+      const { id, ...chapterPayload } = newChapter;
+      return storyApi.createStory(newName, [chapterPayload]);
+    },
+    onSuccess: (newStory) => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+      handleStorySwitch(newStory.id);
+    },
+  });
 
-      // Update state *after* successful API call
-      const newStories = [...stories, newStory];
-      setStories(newStories);
-      await handleStorySwitch(newStory.id); // Switch to the new story
-    } catch (error) {
-      console.error('Failed to create new story:', error);
-    }
-  }, [stories, handleStorySwitch]);
+  const deleteStoryMutation = useMutation({
+    mutationFn: async (storyId: string) => {
+      await storyApi.deleteStory(storyId);
+      await storyApi.deleteAnalysis(storyId); // Also delete associated analysis
+      return storyId;
+    },
+    onSuccess: (deletedStoryId) => {
+      const newStories = stories.filter((s) => s.id !== deletedStoryId);
+      if (activeStoryId === deletedStoryId && newStories.length > 0) {
+        handleStorySwitch(newStories[0].id);
+      }
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+  });
+
+  const updateStoryMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<UserStoryData> }) =>
+      storyApi.updateStory(id, data),
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ['stories'] });
+      const previousStories = queryClient.getQueryData<UserStoryData[]>(['stories']);
+      queryClient.setQueryData<UserStoryData[]>(['stories'], (old) =>
+        old
+          ? old.map((story) =>
+              story.id === variables.id ? { ...story, ...variables.data } : story
+            )
+          : []
+      );
+      return { previousStories };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousStories) {
+        queryClient.setQueryData(['stories'], context.previousStories);
+      }
+    },
+    // On success, replace the cached story with the server-returned story so
+    // temporary chapter ids created on the client are replaced by backend ids.
+    onSuccess: (updatedStory: UserStoryData) => {
+      queryClient.setQueryData<UserStoryData[]>(['stories'], (old) =>
+        old
+          ? old.map((s) => (s.id === updatedStory.id ? {
+              ...updatedStory,
+              chapters: [...(updatedStory.chapters || [])].sort((a, b) => a.number - b.number),
+            } : s))
+          : [updatedStory]
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['stories'] });
+    },
+  });
+
+  const handleNewStory = useCallback(() => {
+    createStoryMutation.mutate(`New Story ${stories.length + 1}`);
+  }, [stories.length, createStoryMutation]);
 
   const handleDeleteStory = useCallback(
-    async (storyId: string) => {
+    (storyId: string) => {
       if (stories.length <= 1) {
         alert('Cannot delete the last story.');
         return;
       }
-
-      try {
-        await storyApi.deleteStory(storyId);
-        // Also delete associated analysis
-        await storyApi.deleteAnalysis(storyId);
-
-        // Update state *after* successful deletion
-        const newStories = stories.filter((s) => s.id !== storyId);
-        setStories(newStories);
-
-        // If we deleted the active story, switch to the first remaining one
-        if (activeStoryId === storyId) {
-          await handleStorySwitch(newStories[0].id);
-        }
-      } catch (error) {
-        console.error('Failed to delete story:', error);
-      }
+      deleteStoryMutation.mutate(storyId);
     },
-    [stories, activeStoryId, handleStorySwitch]
+    [stories.length, deleteStoryMutation]
   );
 
   const handleStoryNameChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!activeStory) return;
-      const newName = e.target.value;
-
-      // Optimistically update the UI for responsiveness
-      const oldStories = stories;
-      const newStoriesOptimistic = stories.map((s) =>
-        s.id === activeStoryId ? { ...s, name: newName } : s
-      );
-      setStories(newStoriesOptimistic);
-
-      try {
-        // Debounce or save on blur in a real app, but for now, save immediately
-        await storyApi.updateStory(activeStory.id, { name: newName });
-        // The backend might return an updated object (e.g., with updatedAt)
-        // For now, we assume the optimistic update is correct
-      } catch (error) {
-        console.error('Failed to save story name:', error);
-        // Rollback on error
-        setStories(oldStories);
-        alert('Error: Could not save story name.');
-      }
+      updateStoryMutation.mutate({
+        id: activeStory.id,
+        data: { name: e.target.value },
+      });
     },
-    [activeStory, activeStoryId, stories]
+    [activeStory, updateStoryMutation]
   );
 
-  // --- Chapter Handlers ---
-
-  // Helper to update the story's chapters on the backend
   const updateActiveStoryChapters = useCallback(
-    async (updatedChapters: UserChapterData[]) => {
+    (updatedChapters: UserChapterData[]) => {
       if (!activeStory) return;
+      // Ensure chapters are sorted by number and renumbered sequentially
+      const cleaned = [...updatedChapters]
+        .sort((a, b) => a.number - b.number)
+        .map((c, index) => ({ ...c, number: index + 1 }));
 
-      const oldStories = stories;
-      // Optimistic update for snappy UI
-      const updatedStoryOptimistic = {
-        ...activeStory,
-        chapters: updatedChapters,
-      };
-      const newStoriesOptimistic = stories.map((s) =>
-        s.id === activeStoryId ? updatedStoryOptimistic : s
-      );
-      setStories(newStoriesOptimistic);
-
-      try {
-        // Persist the change to the backend
-        await storyApi.updateStory(activeStory.id, {
-          chapters: updatedChapters,
-        });
-      } catch (error) {
-        console.error('Failed to update chapters:', error);
-        // Rollback
-        setStories(oldStories);
-        alert('Error: Could not save chapter changes.');
-      }
+      updateStoryMutation.mutate({
+        id: activeStory.id,
+        data: { chapters: cleaned },
+      });
     },
-    [activeStory, activeStoryId, stories]
+    [activeStory, updateStoryMutation]
   );
 
-  const handleAddChapter = useCallback(async () => {
+  const handleAddChapter = useCallback(() => {
     if (!activeStory) return;
-
-    const newId =
-      activeStory.chapters.length > 0
-        ? Math.max(...activeStory.chapters.map((c) => c.number)) + 1
-        : 1;
-    const newChapter = {
-      number: newId,
-      title: `Chapter ${activeStory.chapters.length + 1}`,
+    const nextNumber = activeStory.chapters && activeStory.chapters.length > 0
+      ? Math.max(...activeStory.chapters.map((c) => c.number)) + 1
+      : 1;
+    const newChapter: UserChapterData = {
+      id: `temp-${Date.now()}-${Math.random()}`,
+      number: nextNumber,
+      title: `Chapter ${nextNumber}`,
       content: '',
     };
-
-    await updateActiveStoryChapters([...activeStory.chapters, newChapter]);
+    updateActiveStoryChapters([...activeStory.chapters, newChapter]);
   }, [activeStory, updateActiveStoryChapters]);
 
   const handleRemoveChapter = useCallback(
-    async (chapterNumber: number) => {
+    (chapterId: string) => {
       if (!activeStory) return;
-
-      const newChapters = activeStory.chapters.filter(
-        (chapter) => chapter.number !== chapterNumber
-      );
-
-      await updateActiveStoryChapters(newChapters);
+      // Ensure we operate on sorted chapters, remove the one with the id,
+      // then renumber sequentially starting at 1.
+      const newChapters = [...activeStory.chapters]
+        .sort((a, b) => a.number - b.number)
+        .filter((c) => c.id !== chapterId)
+        .map((c, index) => ({ ...c, number: index + 1 }));
+      updateActiveStoryChapters(newChapters);
     },
     [activeStory, updateActiveStoryChapters]
   );
 
   const handleChapterChange = useCallback(
-    async (
-      chapterNumber: number,
-      field: keyof UserChapterData,
-      value: string
-    ) => {
+    (chapterId: string, field: keyof UserChapterData, value: string) => {
       if (!activeStory) return;
 
-      const newChapters = activeStory.chapters.map((chapter) =>
-        chapter.number === chapterNumber
-          ? { ...chapter, [field]: value }
-          : chapter
-      );
-
-      await updateActiveStoryChapters(newChapters);
+      // If changing title or content, don't renumber - just update the field
+      if (field === 'title' || field === 'content') {
+        const newChapters = activeStory.chapters.map((c) =>
+          c.id === chapterId ? { ...c, [field]: value } : c
+        );
+        updateStoryMutation.mutate({
+          id: activeStory.id,
+          data: { chapters: newChapters },
+        });
+      } else {
+        // For other fields (like number), use the full renumbering logic
+        const newChapters = activeStory.chapters.map((c) =>
+          c.id === chapterId ? { ...c, [field]: value } : c
+        );
+        updateActiveStoryChapters(newChapters);
+      }
     },
-    [activeStory, updateActiveStoryChapters]
+    [activeStory, updateActiveStoryChapters, updateStoryMutation]
   );
 
   return {
     stories,
-    activeStory: activeStory || null, // Ensure return is null if not found
+    activeStory,
     activeStoryId,
     isLoading,
     handlers: {

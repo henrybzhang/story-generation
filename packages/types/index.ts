@@ -1,8 +1,8 @@
 import z from "zod";
-import type { ChapterSummary } from "./schemas/chapterSummarySchema";
+import type { ChapterAnalysis } from "./schemas/chapterAnalysisSchema";
 import type { MasterStoryDocument, Score } from "./schemas/masterSchema";
 
-export * from "./schemas/chapterSummarySchema";
+export * from "./schemas/chapterAnalysisSchema";
 export * from "./schemas/masterSchema";
 
 // --- 1. Zod Schemas as Single Source of Truth ---
@@ -20,6 +20,7 @@ export type AnalysisJobStatus = z.infer<typeof AnalysisJobStatusSchema>;
 
 // --- 2. Clear DTOs (Data Transfer Objects) ---
 export type UserChapterData = {
+  id: string;
   title: string;
   content: string;
   number: number;
@@ -50,25 +51,18 @@ export type BaseAnalysisData = {
   score: Score;
 };
 
-export type IndirectChapterAnalysisData = BaseAnalysisData & {
-  analysis: {
-    chapterSummary: ChapterSummary;
-    masterStoryDocument: MasterStoryDocument;
-  };
-};
-
 // Base type for a job
 type BaseAnalysisJobData = {
   id: string;
   status: AnalysisJobStatus;
+  promptVersion: number;
+  modelName: string;
 };
 
 export type IndirectAnalysisJobData = BaseAnalysisJobData & {
   method: AnalysisMethod.INDIRECT;
-  storyAnalysis: {
-    id: string;
-    chapterAnalyses: IndirectChapterAnalysisData[];
-  };
+  chapterAnalyses: ChapterAnalysis[];
+  masterDocument: MasterStoryDocument;
 };
 
 // Final discriminated union type

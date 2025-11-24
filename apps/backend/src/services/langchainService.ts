@@ -1,7 +1,6 @@
 import { ChatOpenAI } from "@langchain/openai";
 
 // Initialize LangChain with OpenRouter
-/*
 const createLangChainClient = () => {
   if (!process.env.OPENROUTER_API_KEY) {
     throw new Error("OPENROUTER_API_KEY is not set in environment variables");
@@ -13,30 +12,32 @@ const createLangChainClient = () => {
 
   return new ChatOpenAI({
     model: process.env.MODEL_NAME,
-    temperature: 0.8,
+    reasoning: {
+      effort: "low",
+    },
+    temperature: 0.3,
     apiKey: process.env.OPENROUTER_API_KEY,
     configuration: {
       baseURL: "https://openrouter.ai/api/v1",
     },
   });
 };
-*/
 
 // Initialize LangChain with Grok
-const createLangChainClient = () => {
-  if (!process.env.GROK_API_KEY) {
-    throw new Error("GROK_API_KEY is not set in environment variables");
-  }
+// const createLangChainClient = () => {
+//   if (!process.env.GROK_API_KEY) {
+//     throw new Error("GROK_API_KEY is not set in environment variables");
+//   }
 
-  return new ChatOpenAI({
-    model: "grok-4-fast-reasoning",
-    temperature: 0.3,
-    apiKey: process.env.GROK_API_KEY,
-    configuration: {
-      baseURL: "https://api.x.ai/v1",
-    },
-  });
-};
+//   return new ChatOpenAI({
+//     model: "grok-4-fast-reasoning",
+//     temperature: 0.3,
+//     apiKey: process.env.GROK_API_KEY,
+//     configuration: {
+//       baseURL: "https://api.x.ai/v1",
+//     },
+//   });
+// };
 
 // Initialize LangSmith if API key is provided
 const initializeLangSmith = () => {
